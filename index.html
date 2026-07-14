@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bid Room · CapitalProjectOS</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 940 940'%3E%3Cg fill='%231a91a5' transform='translate(233.5 73.5)'%3E%3Cpath d='M236.5 0 L291 92 L273 152 L273 684 L291 718 L236.5 793 L182 718 L200 684 L200 152 L182 92 Z'/%3E%3Cpath d='M0 175 L73 247 L73 684 L0 684 Z'/%3E%3Cpath d='M473 175 L400 247 L400 684 L473 684 Z'/%3E%3Cpath d='M73 332 C112 392 155 442 200 464 L200 545 C150 522 105 472 73 422 Z'/%3E%3Cpath d='M400 332 C361 392 318 442 273 464 L273 545 C323 522 368 472 400 422 Z'/%3E%3C/g%3E%3C/svg%3E">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --blue:#004ddd; --blue-hover:#0040b8; --blue-bg:#e3ecfd; --blue-mid:#78abfd;
+  --navy:#000427; --navy2:#0f174c; --ink:#0a0a0a; --bg:#f5f5f5; --card:#ffffff;
+  --line:#e2e2e2; --line-dk:#c9c9c9; --slate:#838aa6; --txt:#1e1e1f; --muted:#6b6b6b;
+  --teal:#0aa78f; --teal-bg:#dcf5f1; --teal-txt:#085041;
+  --amber:#ba7517; --amber-bg:#fdf3e0; --amber-txt:#854f0b;
+  --green:#1d7a44; --green-bg:#e3f4ea;
+  --red:#c0392b; --red-bg:#fdecea;
+  --mono:'SF Mono',ui-monospace,'Cascadia Code',Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5}
+button{font-family:inherit;cursor:pointer;border:none;background:none;font-size:13px}
+input,select,textarea{font-family:inherit;font-size:13px;border:1px solid var(--line-dk);border-radius:6px;padding:6px 8px;background:#fff;color:var(--txt)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--blue-mid);outline-offset:0}
+a{color:var(--blue);text-decoration:none}
+
+header{background:var(--ink);color:#fff;display:flex;align-items:center;gap:14px;padding:0 20px;height:52px;position:sticky;top:0;z-index:50}
+.brand{display:flex;align-items:center;gap:9px;cursor:pointer}
+.brand svg{display:block}
+.brand-name{font-weight:600;font-size:14px;letter-spacing:.12em}
+.brand-sub{color:var(--slate);font-size:10.5px;letter-spacing:.05em;margin-left:2px;padding-left:12px;border-left:1px solid #2c2c2c}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.hdr-btn{color:#e9e9e9;font-size:12.5px;border:1px solid #333;border-radius:6px;padding:5px 11px;display:flex;align-items:center;gap:6px}
+.hdr-btn:hover{border-color:#555}
+.btn-primary{background:var(--blue);color:#fff;font-weight:600;border-radius:6px;padding:7px 14px;font-size:12.5px}
+.btn-primary:hover{background:var(--blue-hover)}
+.btn-ghost{border:1px solid var(--line-dk);border-radius:6px;padding:6px 12px;color:var(--txt);font-weight:500;background:#fff}
+.btn-ghost:hover{border-color:var(--slate)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#555}
+.live-dot.on{background:#35d07f;box-shadow:0 0 6px #35d07f}
+
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+.crumb{font-size:12px;color:var(--muted);margin-bottom:14px}
+.crumb a{color:var(--muted)}
+.crumb a:hover{color:var(--blue)}
+h1{font-size:20px;font-weight:650;color:var(--navy);letter-spacing:-.01em}
+h2{font-size:15px;font-weight:600;color:var(--navy2);margin-bottom:10px}
+.pagehead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}
+.subline{color:var(--muted);font-size:12.5px;margin-bottom:18px}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2.5px 9px;border-radius:999px;white-space:nowrap;letter-spacing:.01em}
+.chip.mine{background:var(--amber-bg);color:var(--amber-txt)}
+.chip.plant{background:var(--teal-bg);color:var(--teal-txt)}
+.chip.site{background:var(--blue-bg);color:var(--navy2)}
+.chip.status-level{background:var(--blue-bg);color:var(--blue)}
+.chip.status-clarify{background:var(--amber-bg);color:var(--amber)}
+.chip.status-due{background:#ededed;color:var(--muted)}
+.chip.status-awarded{background:var(--green-bg);color:var(--green)}
+.chip.flag{background:var(--red-bg);color:var(--red)}
+.chip.ok{background:var(--green-bg);color:var(--green)}
+.chip.sel{background:var(--navy2);color:#fff}
+.chip.clickable{cursor:pointer;border:1px solid transparent}
+.chip.clickable:not(.sel):not(.mine):not(.plant){background:#fff;border-color:var(--line-dk);color:var(--muted)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi .lbl{font-size:11px;color:var(--muted);letter-spacing:.02em;margin-bottom:2px}
+.kpi .val{font-size:22px;font-weight:650;color:var(--navy)}
+.kpi .delta{font-size:11px;font-weight:600}
+.kpi .delta.good{color:var(--green)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+table.list{width:100%;border-collapse:collapse}
+table.list th{text-align:left;font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.03em;padding:10px 14px;border-bottom:1px solid var(--line);background:#fafafa}
+table.list td{padding:11px 14px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+table.list tr:last-child td{border-bottom:none}
+table.list tr.row{cursor:pointer}
+table.list tr.row:hover{background:#f7faff}
+.pkg-name{font-weight:600;color:var(--navy)}
+.td-sub{font-size:11.5px;color:var(--muted)}
+
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+.filters .sep{width:1px;height:16px;background:var(--line-dk);margin:0 4px}
+
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--line);margin:18px 0 16px}
+.tab{padding:8px 16px;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px}
+.tab.on{color:var(--blue);border-color:var(--blue)}
+.tab:hover:not(.on){color:var(--navy2)}
+.tab .badge{background:#ededed;color:var(--muted);border-radius:999px;font-size:10.5px;padding:1px 6px;margin-left:5px}
+.tab.on .badge{background:var(--blue-bg);color:var(--blue)}
+
+.vendor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:12px}
+.vcard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.vcard .vname{font-weight:650;color:var(--navy);font-size:13.5px}
+.vcard .vmeta{font-size:11.5px;color:var(--muted);margin:2px 0 10px}
+.vrow{display:flex;justify-content:space-between;font-size:12.5px;padding:3px 0}
+.vrow .k{color:var(--muted)}
+.vrow .v{font-weight:600;color:var(--txt)}
+.vfoot{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.via{font-size:11px;color:var(--slate)}
+
+.split{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:900px){.split{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+.panel h3{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px}
+
+.field{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;font-size:12.5px}
+.field:hover{background:#f5f8ff}
+.field.hl{background:var(--blue-bg)}
+.field .fk{color:var(--muted);width:118px;flex-shrink:0}
+.field .fv{font-weight:600;flex:1;cursor:pointer;border-bottom:1px dotted var(--line-dk)}
+.field .fv:hover{color:var(--blue)}
+.conf{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.conf.hi{background:#35d07f}
+.conf.md{background:#f3b23a}
+.conf.lo{background:var(--red)}
+.vfy{font-size:11px;color:var(--green);font-weight:600}
+.vfy.no{color:var(--amber)}
+
+.doc{font-family:var(--mono);font-size:11.5px;line-height:1.75;background:#fbfbf9;border:1px solid var(--line);border-radius:8px;padding:14px;white-space:pre-wrap;max-height:430px;overflow-y:auto;color:#333}
+.doc .src{background:#fff3c4;border-radius:3px;padding:0 2px}
+.doc .src.on{background:#ffd54f;outline:2px solid #f3b23a}
+.doc-hdr{font-size:11px;color:var(--muted);margin-bottom:6px;display:flex;gap:8px;align-items:center}
+
+.rfi{border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:12px;overflow:hidden}
+.rfi-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+.rfi-head:hover{background:#fafafa}
+.rfi-q{font-weight:600;color:var(--navy);font-size:13px;flex:1}
+.rfi-body{border-top:1px solid var(--line);padding:14px;display:none}
+.rfi.open .rfi-body{display:block}
+.msg{max-width:82%;border-radius:10px;padding:9px 12px;font-size:12.5px;margin-bottom:8px}
+.msg.us{background:var(--blue-bg);color:var(--navy2);margin-left:auto}
+.msg.them{background:#f1f1f1}
+.msg .who{font-size:10.5px;font-weight:600;color:var(--muted);margin-bottom:2px;letter-spacing:.02em}
+.auto-tag{font-size:10px;background:var(--navy2);color:#fff;border-radius:4px;padding:1px 6px;font-weight:600;letter-spacing:.03em}
+
+table.lvl{width:100%;border-collapse:collapse;font-size:12.5px}
+table.lvl th{font-size:12px;font-weight:650;color:var(--navy);padding:9px 10px;text-align:right;border-bottom:2px solid var(--line-dk);white-space:nowrap}
+table.lvl th:first-child{text-align:left}
+table.lvl td{padding:7.5px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+table.lvl td:first-child{text-align:left;color:var(--muted)}
+table.lvl tr.total td{font-weight:700;color:var(--navy);border-top:2px solid var(--line-dk);border-bottom:2px solid var(--line-dk);background:#fafcff;font-size:13px}
+table.lvl td.gap{background:var(--red-bg);color:var(--red);font-weight:600}
+table.lvl td.best{color:var(--green);font-weight:700}
+table.lvl th.rec{color:var(--blue)}
+table.lvl td.excl,table.lvl th.excl{opacity:.32}
+.src-ico{font-size:10px;color:var(--blue);cursor:pointer;margin-left:3px}
+.cell-note{display:block;font-size:10px;color:var(--muted);font-weight:400}
+
+.assump{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:12px;color:var(--muted);margin:14px 0;padding:12px 14px;background:#fafafa;border:1px solid var(--line);border-radius:8px}
+.assump label{display:flex;align-items:center;gap:6px;font-weight:500}
+.assump input[type=number]{width:70px;padding:3px 6px;font-size:12px}
+.wrow{display:flex;align-items:center;gap:8px;font-size:12px}
+.wrow input[type=range]{width:90px;accent-color:var(--blue)}
+.wrow .wv{font-weight:700;color:var(--navy);width:24px}
+
+.recbox{background:var(--blue-bg);border-left:3px solid var(--blue);padding:13px 16px;font-size:13px;color:var(--navy2);border-radius:0 8px 8px 0;margin-top:14px}
+.recbox b{color:var(--blue)}
+
+.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--navy);color:#fff;border-radius:8px;padding:11px 16px;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;animation:slidein .25s ease}
+.toast .tico{color:var(--teal)}
+@keyframes slidein{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+
+.modal-bg{position:fixed;inset:0;background:rgba(0,4,39,.45);z-index:100;display:flex;align-items:flex-start;justify-content:center;padding:34px 16px;overflow-y:auto}
+.modal{background:var(--bg);border-radius:12px;max-width:1060px;width:100%;padding:20px 22px;position:relative}
+.modal-x{position:absolute;top:14px;right:16px;font-size:18px;color:var(--muted);padding:4px 8px}
+.modal-x:hover{color:var(--navy)}
+
+.audit{font-size:12px}
+.audit-row{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+.audit-row:last-child{border:none}
+.audit-t{color:var(--muted);font-family:var(--mono);font-size:11px;width:118px;flex-shrink:0}
+.audit-w{font-weight:600;color:var(--navy2);width:88px;flex-shrink:0}
+
+.live-panel{position:fixed;top:52px;right:0;bottom:0;width:360px;background:#fff;border-left:1px solid var(--line-dk);z-index:60;padding:18px;overflow-y:auto;box-shadow:-8px 0 24px rgba(0,0,0,.07)}
+.qrbox{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:14px}
+#qr img,#qr canvas{border-radius:4px}
+.lvbid{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12.5px}
+.raw{font-family:var(--mono);font-size:11px;background:#fbfbf9;border-radius:6px;padding:8px;margin:6px 0;white-space:pre-wrap;color:#444;max-height:110px;overflow-y:auto}
+.extract-anim{color:var(--blue);font-weight:600;font-size:11.5px}
+.pulse{animation:pulse 1.1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.bubble{background:var(--blue-bg);border-radius:12px 12px 12px 4px;padding:10px 12px;font-size:12.5px;color:var(--navy2);max-width:540px;line-height:1.55}
+.ch{font-size:10px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:2px 7px}
+.ch.email{background:#ededed;color:var(--muted)}
+.ch.text{background:var(--blue-bg);color:var(--blue)}
+.ch.vm{background:var(--amber-bg);color:var(--amber)}
+.ch.upload{background:var(--teal-bg);color:var(--teal-txt)}
+.icard{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.icard.done{opacity:.62}
+.iclass{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fafafa;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:10px;font-size:12px}
+.iactions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;align-items:center}
+.emptybox{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px}
+.footnote{font-size:11px;color:var(--slate);margin-top:8px}
+.kbd{font-family:var(--mono);font-size:10.5px;background:#eee;border:1px solid var(--line-dk);border-radius:4px;padding:0 5px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand" onclick="go('dash')">
+    <svg width="15" height="25" viewBox="0 0 473 793"><g fill="#1a91a5"><path d="M236.5 0 L291 92 L273 152 L273 684 L291 718 L236.5 793 L182 718 L200 684 L200 152 L182 92 Z"/><path d="M0 175 L73 247 L73 684 L0 684 Z"/><path d="M473 175 L400 247 L400 684 L473 684 Z"/><path d="M73 332 C112 392 155 442 200 464 L200 545 C150 522 105 472 73 422 Z"/><path d="M400 332 C361 392 318 442 273 464 L273 545 C323 522 368 472 400 422 Z"/></g></svg>
+    <span class="brand-name">BID ROOM</span>
+    <span class="brand-sub">CapitalProjectOS</span>
+  </div>
+  <div class="hdr-right">
+    <button class="hdr-btn" onclick="go('intake')">Intake <span id="intakeBadge" style="background:var(--blue);color:#fff;border-radius:999px;font-size:10px;padding:1px 7px;font-weight:700">4</span></button>
+    <button class="hdr-btn" onclick="toggleLive()"><span class="live-dot" id="liveDot"></span> Live intake</button>
+    <button class="btn-primary" onclick="toast('New RFQ creation is post-MVP – see roadmap','info')">+ New RFQ</button>
+  </div>
+</header>
+<div class="wrap" id="app"></div>
+<div class="toast-wrap" id="toasts"></div>
+<div id="livePanel" class="live-panel" style="display:none"></div>
+<div id="modalRoot"></div>
+<script>
+/* ============ CONFIG ============ */
+/* Paste your Firebase Realtime Database URL here to enable live audience bids.
+   Example: const LIVE_DB_URL = "https://bidroom-demo-default-rtdb.firebaseio.com";
+   Leave empty to run fully offline (press "b" to simulate an incoming bid). */
+const LIVE_DB_URL = "";
+/* URL of the hosted phone form (shown as QR code in the Live intake panel) */
+const FORM_URL = "https://gapel-del.github.io/bid-room/submit-bid.html";
+
+/* ============ SEED DATA ============ */
+const FX = { USD: 1, EUR: 1.09 };
+const fmtK = d => '$' + Math.round(d/1000).toLocaleString() + 'k';
+const now = () => new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+
+const DATA = {
+  packages: [
+    {
+      id:'crys', name:'Evaporator–crystallizer package', tagNo:'PKG-L1-210',
+      site:'Lithium One', ctx:'Plant', status:'level', due:'Jul 18', owner:'G. Apel',
+      desc:'MVR evaporator + forced-circulation crystallizer, LiCl concentration duty, 3,000 tpy LCE hub',
+      invited:5, note:'4 of 5 bids in · 3 clarifications resolved, 1 open',
+      bids:[
+        { id:'vantherm', vendor:'Vantherm Process Systems', loc:'Houston, TX', rev:'B', via:'Email · PDF quote',
+          fields:{
+            base:{v:3120000, cur:'USD', conf:'hi', vfy:true, src:'s1', label:'$3,120,000'},
+            incoterms:{v:'DDP site', conf:'hi', vfy:true, src:'s2'},
+            freight:{v:0, note:'included (DDP)', conf:'hi', vfy:true, src:'s2'},
+            spares:{v:0, note:'2-yr spares included', conf:'hi', vfy:true, src:'s3'},
+            scope:{v:0, note:'full scope incl. vacuum system', conf:'hi', vfy:true, src:'s4'},
+            lead:{v:30, conf:'hi', vfy:true, src:'s5'},
+            validity:{v:'120 days', conf:'hi', vfy:true, src:'s6'},
+            payment:{v:'20/70/10 milestones', conf:'hi', vfy:true, src:'s7'},
+            materials:{v:'Titanium Gr.2 wetted parts', conf:'hi', vfy:true, src:'s8'}
+          },
+          exceptions:[], fx:0,
+          doc:`From: j.reyes@vantherm.com\nTo: bids@mariana.io\nSubject: RE: RFQ PKG-L1-210 – Firm Proposal Rev B\n\nPer your clarification CL-003, we confirm the following:\n\n[s1]Total firm lump sum price: USD 3,120,000[/s1]\n[s2]Delivered DDP Lithium One site, Joaquin TX. All freight,\nduties and unloading included.[/s2]\n[s3]Includes recommended 2-year operating spares package\n(ref. Annex C).[/s3]\n[s4]Scope per RFQ Section 3 in full, including skid-mounted\nvacuum system, interconnecting piping and instrumentation.[/s4]\n[s5]Delivery: 30 weeks ex-works from PO, firm.[/s5]\n[s6]Proposal validity: 120 days from this date.[/s6]\n[s7]Payment: 20% on PO / 70% milestones / 10% at FAT.[/s7]\n[s8]Wetted parts titanium Gr.2 per spec MTL-armor-04.[/s8]\n\nUS-based field service team available for commissioning\nsupport at published day rates.\n\nJulia Reyes – VP Sales, Vantherm Process Systems`},
+        { id:'coastal', vendor:'Coastal Evaporation Co.', loc:'Baton Rouge, LA', rev:'B', via:'Email · Excel + PDF',
+          fields:{
+            base:{v:2680000, cur:'USD', conf:'hi', vfy:true, src:'s1', label:'$2,680,000'},
+            incoterms:{v:'EXW Baton Rouge', conf:'hi', vfy:true, src:'s2'},
+            freight:{v:145000, note:'estimate, 14 loads OD', conf:'md', vfy:false, src:'s2'},
+            spares:{v:92000, note:'quoted option, not incl.', conf:'hi', vfy:true, src:'s3'},
+            scope:{v:0, note:'vacuum system included', conf:'hi', vfy:true, src:'s4'},
+            lead:{v:44, conf:'hi', vfy:true, src:'s5'},
+            validity:{v:'90 days', conf:'hi', vfy:true, src:'s6'},
+            payment:{v:'40% down / 60% delivery', conf:'hi', vfy:true, src:'s7'},
+            materials:{v:'Duplex 2205 (conf. via CL-001)', conf:'hi', vfy:true, src:'s8'}
+          },
+          exceptions:['40% down payment vs. 20% RFQ terms'], fx:0,
+          doc:`From: estimating@coastalevap.com\nSubject: PKG-L1-210 Proposal – Rev B (post clarification)\n\n[s1]Base equipment price: $2,680,000.00[/s1]\n[s2]Terms EXW our Baton Rouge shop. Freight to site by\nothers – we estimate 14 OD loads, budget ~$145,000.[/s2]\n[s3]Optional 2-yr spares package: add $92,000.[/s3]\n[s4]Rev B confirms skid vacuum system now INCLUDED per\nclarification CL-001 response.[/s4]\n[s5]Schedule: 44 weeks from approved drawings.[/s5]\n[s6]Validity: 90 days.[/s6]\n[s7]Commercial terms: 40% with order, 60% at delivery.\nWe cannot accept milestone holdbacks.[/s7]\n[s8]Per CL-001 we confirm duplex 2205 construction at no\nadder vs. originally quoted 316L.[/s8]\n\nRegards,\nCoastal Evaporation Co. – Estimating`},
+        { id:'nordkessel', vendor:'Nordkessel GmbH', loc:'Hamburg, DE', rev:'A', via:'Vendor portal · PDF',
+          fields:{
+            base:{v:2540000, cur:'EUR', conf:'hi', vfy:true, src:'s1', label:'€2,540,000'},
+            incoterms:{v:'FOB Hamburg', conf:'hi', vfy:true, src:'s2'},
+            freight:{v:118000, note:'ocean + inland, est.', conf:'md', vfy:false, src:'s2'},
+            spares:{v:96000, note:'quoted option, not incl.', conf:'hi', vfy:true, src:'s3'},
+            scope:{v:70000, note:'commissioning by others', conf:'md', vfy:true, src:'s4'},
+            lead:{v:38, conf:'hi', vfy:true, src:'s5'},
+            validity:{v:'60 days', conf:'hi', vfy:true, src:'s6'},
+            payment:{v:'30/60/10 milestones', conf:'hi', vfy:true, src:'s7'},
+            materials:{v:'Duplex 1.4462', conf:'hi', vfy:true, src:'s8'}
+          },
+          exceptions:['No US field-service team – commissioning support remote only','Performance test at factory only (no site test)'], fx:2,
+          doc:`NORDKESSEL GmbH – Angebot / Proposal N-26-0442\nProject: Mariana Lithium One – PKG-L1-210\n\n[s1]Contract price: EUR 2,540,000 (fixed)[/s1]\n[s2]FOB Hamburg per Incoterms 2020. Ocean freight and\nUS inland transport by purchaser. Indicative freight\nbudget USD 118,000.[/s2]\n[s3]Spare parts package (2 years): EUR/USD equiv. 96,000\n– optional.[/s3]\n[s4]Commissioning: remote engineering support included.\nOn-site commissioning personnel NOT included – by\npurchaser or third party. Est. impact USD 70,000.[/s4]\n[s5]Delivery: 38 weeks FOB.[/s5]\n[s6]Validity: 60 days.[/s6]\n[s7]Payment: 30% down, 60% against shipping docs, 10%\nafter FAT.[/s7]\n[s8]Material: Duplex 1.4462 product-wetted.[/s8]\n\nPerformance guarantee demonstrated at factory acceptance\ntest only. Site performance testing excluded.`},
+        { id:'andes', vendor:'Andes Equipos SA', loc:'Antofagasta, CL', rev:'A', via:'Email · scanned PDF',
+          fields:{
+            base:{v:2890000, cur:'USD', conf:'hi', vfy:true, src:'s1', label:'$2,890,000'},
+            incoterms:{v:'DAP site', conf:'hi', vfy:true, src:'s2'},
+            freight:{v:0, note:'included (DAP)', conf:'hi', vfy:true, src:'s2'},
+            spares:{v:88000, note:'quoted option, not incl.', conf:'md', vfy:false, src:'s3'},
+            scope:{v:240000, note:'VACUUM SYSTEM EXCLUDED', conf:'lo', vfy:true, src:'s4'},
+            lead:{v:36, conf:'hi', vfy:true, src:'s5'},
+            validity:{v:'60 days – expires Aug 2', conf:'hi', vfy:true, src:'s6'},
+            payment:{v:'25/65/10 milestones', conf:'hi', vfy:true, src:'s7'},
+            materials:{v:'Duplex 2205', conf:'hi', vfy:true, src:'s8'}
+          },
+          exceptions:['Vacuum system excluded (T&Cs p.7) – est. +$240k to level','Validity 60 days, expires before award gate'], fx:0,
+          doc:`ANDES EQUIPOS SA – Propuesta Técnico-Comercial\nRef: PKG-L1-210 / AE-2026-118\n\n[s1]Precio total: USD 2,890,000[/s1]\n[s2]DAP Lithium One site (Incoterms 2020) – transporte\nincluido.[/s2]\n[s3]Repuestos 2 años: USD 88,000 (opcional).[/s3]\n[s5]Plazo de entrega: 36 semanas.[/s5]\n[s6]Validez de la oferta: 60 días.[/s6]\n[s7]Pago: 25% anticipo, 65% hitos, 10% FAT.[/s7]\n[s8]Materiales: Duplex 2205 en partes húmedas.[/s8]\n\nTérminos y Condiciones (p.7, cl. 14.3):\n[s4]"El alcance del suministro EXCLUYE el sistema de vacío\ny sus interconexiones, los cuales serán provistos por\nel comprador."[/s4]`}
+      ],
+      rfis:[
+        { id:'CL-001', vendor:'Coastal Evaporation Co.', q:'Confirm duplex 2205 wetted parts per spec MTL-armor-04 (bid stated 316L)', status:'resolved', auto:true,
+          thread:[
+            {who:'Bid Room · auto-draft', us:true, t:'Jul 2, 09:14', txt:'Your proposal Rev A states 316L SS wetted parts. RFQ spec MTL-armor-04 requires duplex 2205 minimum for LiCl service at design chlorides. Please confirm compliance and any price impact.'},
+            {who:'Coastal Evaporation', us:false, t:'Jul 3, 14:02', txt:'Confirmed – we will supply duplex 2205 at no adder. Rev B issued reflecting this.'}
+          ]},
+        { id:'CL-002', vendor:'Coastal Evaporation Co.', q:'Vacuum system inclusion ambiguous between Section 2 and pricing table', status:'resolved', auto:true,
+          thread:[
+            {who:'Bid Room · auto-draft', us:true, t:'Jul 2, 09:14', txt:'Section 2 lists the skid vacuum system in scope but the pricing table shows no line item. Confirm whether the vacuum system is included in the base price.'},
+            {who:'Coastal Evaporation', us:false, t:'Jul 3, 14:02', txt:'Included in base price. Rev B clarifies – apologies for the ambiguity.'}
+          ]},
+        { id:'CL-003', vendor:'Vantherm Process Systems', q:'Confirm 30-week delivery is firm ex-works, not "target"', status:'resolved', auto:false,
+          thread:[
+            {who:'G. Apel', us:true, t:'Jul 1, 16:40', txt:'Your cover letter says "target 30 weeks." For leveling purposes we need a firm commitment – please confirm contractual delivery.'},
+            {who:'Vantherm', us:false, t:'Jul 2, 10:19', txt:'Confirmed firm at 30 weeks ex-works, backed by LDs per RFQ Section 7. Rev B issued.'}
+          ]},
+        { id:'CL-004', vendor:'Andes Equipos SA', q:'Request validity extension to 120 days (currently expires Aug 2, before award gate)', status:'open', auto:true,
+          thread:[
+            {who:'Bid Room · auto-draft', us:true, t:'Jul 8, 11:05', txt:'Your offer validity (60 days) expires Aug 2, ahead of our award gate. Please extend validity to 120 days and confirm pricing holds.'}
+          ]}
+      ],
+      audit:[
+        {t:'Jun 12, 08:00', who:'G. Apel', what:'RFQ PKG-L1-210 issued to 5 vendors via sourcing platform'},
+        {t:'Jun 30, 17:22', who:'Bid Room', what:'4 bids ingested (email ×3, portal ×1) – extraction complete, 34/36 fields ≥95% confidence'},
+        {t:'Jul 2, 09:14', who:'Bid Room', what:'Auto-drafted 3 clarifications from detected gaps; sent after review by G. Apel'},
+        {t:'Jul 3, 14:02', who:'Coastal Evaporation', what:'Rev B received – materials + vacuum scope resolved, leveling updated'},
+        {t:'Jul 8, 11:05', who:'Bid Room', what:'CL-004 validity-extension request sent to Andes Equipos'},
+        {t:'Jul 9, 15:30', who:'S. Okafor (Process)', what:'Verified extracted technical fields for all 4 bids'}
+      ]
+    },
+    { id:'crush', name:'Primary crusher rebuild', tagNo:'PKG-C1-050', site:'Copper One', ctx:'Mine', status:'clarify', due:'Jul 24', owner:'D. Whitfield',
+      desc:'Jaw crusher refurbishment + new drive, heap leach feed', invited:4, note:'3 of 4 bids in · 2 open RFIs', bids:[], rfis:[
+        { id:'CR-001', vendor:'Pitline Heavy Industries', q:'Confirm drive motor is 480V per site standard (bid lists 4160V)', status:'open', auto:true,
+          thread:[{who:'Bid Room · auto-draft', us:true, t:'Jul 8, 10:12', txt:'Your proposal lists a 4160V drive motor; the site electrical standard for this location is 480V per spec EL-std-02. Please confirm compliance and any price impact.'}] },
+        { id:'CR-002', vendor:'Ridgeline Mechanical', q:'Liner set: quote separately from the mantle or bundled?', status:'open', auto:false,
+          thread:[{who:'D. Whitfield', us:true, t:'Jul 9, 15:40', txt:'Please split liner-set pricing from the mantle so we can level consistently against the other bids.'}] }
+      ], audit:[] },
+    { id:'convey', name:'Overland conveyor + radial stacker', tagNo:'PKG-C1-062', site:'Copper One', ctx:'Mine', status:'due', due:'Jul 31', owner:'D. Whitfield',
+      desc:'1.2 km overland conveyor, agglomerated ore to pad', invited:4, note:'1 of 4 bids in', bids:[], rfis:[], audit:[] },
+    { id:'filter', name:'Filter press package', tagNo:'PKG-L1-230', site:'Lithium One', ctx:'Plant', status:'due', due:'Aug 8', owner:'G. Apel',
+      desc:'Recessed-plate filter presses, impurity removal circuit', invited:5, note:'1 of 5 bids in – Prairie Process auto-routed at 97%', bids:[], rfis:[], audit:[{t:'Jul 10, 08:41', who:'Bid Room', what:'Prairie Process Works bid auto-routed from email intake (97%, above the 90% threshold) – extraction queued'}] },
+    { id:'pumps', name:'Dewatering pump station', tagNo:'PKG-C1-041', site:'Copper One', ctx:'Mine', status:'awarded', due:'–', owner:'D. Whitfield',
+      desc:'Pit dewatering, 3 duty + 1 standby', invited:5, note:'Awarded to Pitline Pumps · cycle 31 days', bids:[], rfis:[], audit:[] },
+    { id:'rect', name:'EW rectifier transformers', tagNo:'PKG-C1-110', site:'Copper One', ctx:'Plant', status:'awarded', due:'–', owner:'R. Chen',
+      desc:'Electrowinning cellhouse DC supply', invited:3, note:'Awarded to Amperex Industrial · cycle 26 days', bids:[], rfis:[], audit:[] }
+  ]
+};
+
+/* ============ STATE ============ */
+const S = {
+  view:'dash', pkgId:null, tab:'bids',
+  fCtx:'All', fSite:'All',
+  eurRate:1.09, hedgePct:2, inclSpares:true,
+  weights:{c:45, s:35, r:20},
+  excluded:{}, openRfi:null,
+  liveBids:[], seenKeys:{}, polling:false, livePanelOpen:false
+};
+
+/* ============ HELPERS ============ */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pkg = () => DATA.packages.find(p => p.id === S.pkgId);
+const crys = () => DATA.packages.find(p => p.id === 'crys');
+
+function toast(msg, kind) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerHTML = `<span class="tico">${kind==='bid' ? '⚡' : kind==='ok' ? '✓' : 'ℹ'}</span><span>${msg}</span>`;
+  $('toasts').appendChild(t);
+  setTimeout(() => { t.style.opacity = 0; t.style.transition = 'opacity .4s'; setTimeout(() => t.remove(), 400); }, 4600);
+}
+function audit(p, what, who) {
+  p.audit.push({ t: 'Jul 10, ' + now(), who: who || 'Bid Room', what });
+}
+function go(view, pkgId, tab) {
+  S.view = view; if (pkgId) S.pkgId = pkgId; if (tab) S.tab = tab;
+  render(); window.scrollTo(0, 0);
+}
+function statusChip(st) {
+  const m = { level:['status-level','Ready to level'], clarify:['status-clarify','In clarification'], due:['status-due','Bids due'], awarded:['status-awarded','Awarded'] };
+  return `<span class="chip ${m[st][0]}">${m[st][1]}</span>`;
+}
+const ctxChip = c => `<span class="chip ${c==='Mine'?'mine':'plant'}">${c==='Mine'?'⛏':'⚗'} ${c}</span>`;
+const siteChip = s => `<span class="chip site">${s}</span>`;
+
+/* ============ LEVELING ENGINE ============ */
+function levelBid(b) {
+  const cur = b.fields.base.cur || 'USD';
+  const rate = cur === 'EUR' ? S.eurRate : 1;
+  const baseUSD = b.fields.base.v * rate;
+  const freight = b.fields.freight.v || 0;
+  const spares = S.inclSpares ? (b.fields.spares.v || 0) : 0;
+  const scope = b.fields.scope.v || 0;
+  const fxRisk = cur === 'EUR' ? Math.round(baseUSD * S.hedgePct / 100) : 0;
+  const total = baseUSD + freight + spares + scope + fxRisk;
+  const lowConf = Object.values(b.fields).filter(f => f.conf !== 'hi').length;
+  return { baseUSD, freight, spares, scope, fxRisk, total, lead: b.fields.lead.v, exc: b.exceptions.length, lowConf };
+}
+function levelAll(p) {
+  const rows = p.bids.map(b => ({ b, L: levelBid(b), incl: !S.excluded[b.id] }));
+  const inc = rows.filter(r => r.incl);
+  if (inc.length) {
+    const minT = Math.min(...inc.map(r => r.L.total));
+    const minLead = Math.min(...inc.map(r => r.L.lead));
+    const wsum = S.weights.c + S.weights.s + S.weights.r;
+    rows.forEach(r => {
+      const cs = minT / r.L.total * 100;
+      const ss = minLead / r.L.lead * 100;
+      const rs = Math.max(0, 100 - 18 * r.L.exc - 6 * r.L.lowConf);
+      r.score = Math.round((S.weights.c * cs + S.weights.s * ss + S.weights.r * rs) / wsum);
+      r.cs = Math.round(cs); r.ss = Math.round(ss); r.rs = Math.round(rs);
+    });
+  }
+  const ranked = inc.slice().sort((a, b2) => b2.score - a.score);
+  return { rows, rec: ranked[0], second: ranked[1], minT: inc.length ? Math.min(...inc.map(r => r.L.total)) : 0 };
+}
+function recText(lv) {
+  if (!lv.rec) return 'No bids included in leveling.';
+  const r = lv.rec, cheapest = lv.rows.filter(x => x.incl).sort((a, b) => a.L.total - b.L.total)[0];
+  let t = `<b>Recommendation: ${esc(r.b.vendor)}</b> – weighted score ${r.score} (cost ${r.cs} · schedule ${r.ss} · risk ${r.rs}).`;
+  if (r !== cheapest) {
+    const prem = r.L.total - cheapest.L.total, wks = cheapest.L.lead - r.L.lead;
+    t += ` The ${fmtK(prem)} (${(prem / cheapest.L.total * 100).toFixed(1)}%) premium over ${esc(cheapest.b.vendor)} buys ${wks} weeks on the critical path`;
+    t += r.L.exc === 0 ? ' with zero open exceptions.' : '.';
+  } else {
+    t += ' Lowest leveled cost' + (r.L.exc === 0 ? ' with zero open exceptions.' : ` carrying ${r.L.exc} open exception(s).`);
+  }
+  t += ' <span style="color:var(--muted)">Recomputed live from assumptions and weights below.</span>';
+  return t;
+}
+
+/* ============ RENDER: DASHBOARD ============ */
+function kpis() {
+  const ps = DATA.packages;
+  const open = ps.reduce((n, p) => n + p.rfis.filter(r => r.status === 'open').length, 0);
+  return [
+    ['Active packages', ps.filter(p => p.status !== 'awarded').length, ''],
+    ['Unrouted intake', S.intake.filter(i => i.status === 'pending').length, ''],
+    ['Open clarifications', open, ''],
+    ['Ready to level', ps.filter(p => p.status === 'level').length, ''],
+    ['Median clarify + level cycle', '11d', '▼ from 24d baseline'],
+    ['Capital via Bid Room', '$14.2M', 'FY26']
+  ];
+}
+function renderDash() {
+  const f = DATA.packages.filter(p => (S.fCtx === 'All' || p.ctx === S.fCtx) && (S.fSite === 'All' || p.site === S.fSite));
+  const chip = (v, cur, key) => `<span class="chip clickable ${v === cur ? 'sel' : ''}" onclick="S.${key}='${v}';render()">${v === 'All' ? (key === 'fCtx' ? 'All contexts' : 'All projects') : v}</span>`;
+  return `
+  <div class="pagehead"><h1>Procurement packages</h1></div>
+  <div class="subline">Capital equipment RFQs across active MarianaOS projects · steps 3–4 of the procurement workflow: bid intake, clarification and leveling</div>
+  <div class="kpis">${kpis().map(k => `<div class="kpi"><div class="lbl">${k[0]}</div><div class="val">${k[1]}</div>${k[2] ? `<div class="delta good">${k[2]}</div>` : ''}</div>`).join('')}</div>
+  <div class="filters">
+    ${chip('All', S.fCtx, 'fCtx')}
+    <span class="chip clickable mine ${S.fCtx==='Mine'?'sel':''}" onclick="S.fCtx='Mine';render()" ${S.fCtx==='Mine'?'style="outline:2px solid var(--amber)"':''}>⛏ Mine</span>
+    <span class="chip clickable plant ${S.fCtx==='Plant'?'sel':''}" onclick="S.fCtx='Plant';render()" ${S.fCtx==='Plant'?'style="outline:2px solid var(--teal)"':''}>⚗ Plant</span>
+    <span class="sep"></span>
+    ${chip('All', S.fSite, 'fSite')}${chip('Lithium One', S.fSite, 'fSite')}${chip('Copper One', S.fSite, 'fSite')}
+  </div>
+  <div class="card"><table class="list">
+    <tr><th>Package</th><th>Context</th><th>Project</th><th>Bids</th><th>Status</th><th>Due</th><th>Owner</th></tr>
+    ${f.map(p => `<tr class="row" onclick="go('pkg','${p.id}','bids')">
+      <td><div class="pkg-name">${esc(p.name)}</div><div class="td-sub">${p.tagNo} · ${esc(p.desc)}</div></td>
+      <td>${ctxChip(p.ctx)}</td><td>${siteChip(p.site)}</td>
+      <td>${p.bids.length ? p.bids.length + ' of ' + p.invited : p.note.split('·')[0].trim()}</td>
+      <td>${statusChip(p.status)}<div class="td-sub" style="margin-top:2px">${esc(p.note)}</div></td>
+      <td>${p.due}</td><td class="td-sub">${p.owner}</td>
+    </tr>`).join('')}
+  </table></div>
+  <div class="footnote">Bid send-out stays on the existing sourcing platform – Bid Room takes over at the reply. Press <span class="kbd">b</span> to simulate an incoming bid.</div>`;
+}
+
+/* ============ RENDER: PACKAGE ============ */
+function renderPkg() {
+  const p = pkg();
+  const openRfis = p.rfis.filter(r => r.status === 'open').length;
+  const tabs = [['bids', `Bid inbox <span class="badge">${p.bids.length}</span>`], ['rfis', `Clarifications <span class="badge">${p.rfis.length ? openRfis + ' open' : 0}</span>`], ['lvl', 'Leveling'], ['dec', 'Decision record']];
+  return `
+  <div class="crumb"><a onclick="go('dash')" style="cursor:pointer">Packages</a> / ${p.tagNo}</div>
+  <div class="pagehead"><h1>${esc(p.name)}</h1>${ctxChip(p.ctx)}${siteChip(p.site)}${statusChip(p.status)}</div>
+  <div class="subline">${p.tagNo} · ${esc(p.desc)} · Bids due ${p.due} · Owner ${p.owner}</div>
+  <div class="tabs">${tabs.map(t => `<button class="tab ${S.tab === t[0] ? 'on' : ''}" onclick="go('pkg','${p.id}','${t[0]}')">${t[1]}</button>`).join('')}</div>
+  ${p.id !== 'crys' && !(S.tab === 'rfis' && p.rfis.length) ? `<div class="card"><div class="emptybox">Demo data is fully populated for the <a style="cursor:pointer" onclick="go('pkg','crys','bids')">evaporator–crystallizer package</a> – this package is context for the dashboard.<br><br>${esc(p.note)}</div></div>` :
+    S.tab === 'bids' ? renderBids(p) : S.tab === 'rfis' ? renderRfis(p) : S.tab === 'lvl' ? renderLvl(p) : renderDec(p)}`;
+}
+
+/* ---- bids tab ---- */
+function renderBids(p) {
+  const lv = levelAll(p);
+  return `<div class="vendor-grid">
+    ${p.bids.map(b => {
+      const L = levelBid(b);
+      const nv = Object.values(b.fields).filter(f => !f.vfy).length;
+      return `<div class="vcard">
+      <div class="vname">${esc(b.vendor)}</div>
+      <div class="vmeta">${esc(b.loc)} · Rev ${b.rev}${b.live ? ' · <span style="color:var(--teal);font-weight:700">LIVE</span>' : ''}</div>
+      <div class="vrow"><span class="k">Quoted base</span><span class="v">${b.fields.base.label || fmtK(b.fields.base.v)}</span></div>
+      <div class="vrow"><span class="k">Leveled</span><span class="v">${fmtK(L.total)}</span></div>
+      <div class="vrow"><span class="k">Lead time</span><span class="v">${b.fields.lead.v} wk</span></div>
+      <div class="vrow"><span class="k">Exceptions</span><span class="v">${b.exceptions.length ? `<span class="chip flag">${b.exceptions.length}</span>` : '<span class="chip ok">0</span>'}</span></div>
+      <div class="vrow"><span class="k">Extraction</span><span class="v">${nv ? `<span class="vfy no">${nv} to verify</span>` : '<span class="vfy">✓ verified</span>'}</span></div>
+      <div class="vfoot"><span class="via">${esc(b.via)}</span><button class="btn-ghost" onclick="openBid('${b.id}')">Open bid</button></div>
+    </div>`;
+    }).join('')}
+    <div class="vcard" style="border-style:dashed;background:#fafafa">
+      <div class="vname" style="color:var(--muted)">Meridian Fabrication</div>
+      <div class="vmeta">Invited · no bid received</div>
+      <div class="emptybox" style="padding:14px 6px">Nudge sent Jul 7.<br>No-bid reason will be logged for vendor analytics.</div>
+    </div>
+  </div>
+  <div class="footnote">Bids arrived as email attachments, portal uploads and a scanned PDF – “lots of random ways.” Extraction normalizes them into one structure; every field links back to its source line.</div>`;
+}
+
+/* ---- bid detail modal ---- */
+const FIELD_LABELS = { base:'Base price', incoterms:'Incoterms', freight:'Freight to site', spares:'Spares (2 yr)', scope:'Scope gaps', lead:'Lead time', validity:'Validity', payment:'Payment terms', materials:'Materials' };
+function openBid(bidId) {
+  const b = crys().bids.find(x => x.id === bidId);
+  const q = Object.values(b.fields).reduce((a, f) => (f.conf === 'lo' ? a.lo++ : f.vfy ? a.ok++ : a.rev++, a), { ok: 0, rev: 0, lo: 0 });
+  const fieldRow = (k, f) => {
+    let val = f.label || (k === 'lead' ? f.v + ' weeks' : typeof f.v === 'number' ? (f.v ? fmtK(f.v) : (f.note || 'included')) : f.v);
+    return `<div class="field" id="f_${k}" onclick="hlSrc('${f.src || ''}','f_${k}')">
+      <span class="conf ${f.conf}" title="extraction confidence"></span>
+      <span class="fk">${FIELD_LABELS[k]}</span>
+      <span class="fv">${esc(String(val))}${f.note && typeof f.v === 'number' && f.v ? `<span class="cell-note">${esc(f.note)}</span>` : ''}</span>
+      <span class="vfy ${f.vfy ? '' : 'no'}">${f.vfy ? '✓ verified' : 'unverified'}</span>
+    </div>`;
+  };
+  const doc = esc(b.doc).replace(/\[(s\d+)\]([\s\S]*?)\[\/s\d+\]/g, (m, id, txt) => `<span class="src" id="src_${id}">${txt}</span>`);
+  $('modalRoot').innerHTML = `<div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <button class="modal-x" onclick="closeModal()">✕</button>
+      <div class="pagehead" style="margin-bottom:2px"><h1 style="font-size:17px">${esc(b.vendor)}</h1><span class="chip site">Rev ${b.rev}</span>${b.live ? '<span class="chip ok">LIVE BID</span>' : ''}</div>
+      <div class="subline" style="margin-bottom:14px">${esc(b.via)} · click any field to trace it to the source document</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;font-size:11.5px;align-items:center;flex-wrap:wrap"><span style="font-weight:700;color:var(--navy2)">Data quality:</span><span class="chip ok">${q.ok} verified</span>${q.rev ? '<span class="chip status-clarify">' + q.rev + ' need review</span>' : ''}${q.lo ? '<span class="chip flag">' + q.lo + ' low-confidence / missing</span>' : ''}<span style="color:var(--muted)">– gaps auto-draft clarifications; unverified numbers stay flagged in leveling</span></div>
+      <div class="split">
+        <div class="panel">
+          <h3>Extracted &amp; normalized</h3>
+          ${Object.entries(b.fields).map(([k, f]) => fieldRow(k, f)).join('')}
+          ${b.exceptions.length ? `<h3 style="margin-top:14px">Exceptions detected</h3>${b.exceptions.map(e => `<div class="field"><span class="conf lo"></span><span style="font-size:12.5px">${esc(e)}</span></div>`).join('')}` : ''}
+          ${revHistoryHtml(b)}
+          <div class="footnote" style="margin-top:12px">● high confidence · ● needs review – a human verifies before any number reaches the leveling table.</div>
+        </div>
+        <div class="panel">
+          <h3>Source document</h3>
+          <div class="doc-hdr">📄 as received · highlights = extraction provenance</div>
+          <div class="doc" id="docPane">${doc}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function hlSrc(srcId, fieldId) {
+  document.querySelectorAll('.src.on').forEach(e => e.classList.remove('on'));
+  document.querySelectorAll('.field.hl').forEach(e => e.classList.remove('hl'));
+  if (!srcId) return;
+  const el = $('src_' + srcId);
+  if (el) { el.classList.add('on'); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  const f = $(fieldId); if (f) f.classList.add('hl');
+}
+function closeModal() { $('modalRoot').innerHTML = ''; }
+
+/* ---- clarifications tab ---- */
+function renderRfis(p) {
+  return `${p.rfis.map(r => `
+  <div class="rfi ${S.openRfi === r.id ? 'open' : ''}">
+    <div class="rfi-head" onclick="S.openRfi = S.openRfi === '${r.id}' ? null : '${r.id}'; render()">
+      <span class="chip ${r.status === 'open' ? 'status-clarify' : 'ok'}">${r.status}</span>
+      <span class="rfi-q">${r.id} · ${esc(r.q)}</span>
+      ${r.auto ? '<span class="auto-tag">AUTO-DRAFTED</span>' : ''}
+      <span class="td-sub">${esc(r.vendor)}</span>
+    </div>
+    <div class="rfi-body">
+      ${r.thread.map(m => `<div class="msg ${m.us ? 'us' : 'them'}"><div class="who">${esc(m.who)} · ${m.t}</div>${esc(m.txt)}</div>`).join('')}
+      ${r.status === 'open' ? `<div style="text-align:right;margin-top:10px"><button class="btn-primary" onclick="resolveRfi('${r.id}')">Simulate vendor response</button></div>` : ''}
+    </div>
+  </div>`).join('')}
+  <div class="footnote">Gaps detected at extraction auto-draft RFIs (one click to review &amp; send). Vendor replies create bid revisions – leveling always reflects the latest rev, with full history.</div>`;
+}
+function resolveRfi(id) {
+  const p = DATA.packages.find(pk => pk.rfis.some(x => x.id === id));
+  const r = p.rfis.find(x => x.id === id);
+  r.status = 'resolved';
+  r.thread.push({ who: r.vendor, us: false, t: 'Jul 10, ' + now(), txt: id === 'CL-004' ? 'Validity extended to 120 days as requested. Pricing holds. Formal letter attached.' : 'Confirmed – response incorporated; revised documentation to follow.' });
+  const andes = p.bids.find(b => b.id === 'andes');
+  if (andes && id === 'CL-004') {
+    andes.fields.validity.v = '120 days (extended via CL-004)';
+    andes.exceptions = andes.exceptions.filter(e => !e.includes('Validity'));
+    pushRev(andes, 'B', 'Email · RFI response', ['Validity extended 60→120 days (CL-004); pricing holds']);
+    audit(p, 'Andes Equipos Rev B – validity extended to 120 days via CL-004; risk score updated');
+  }
+  toast(id === 'CL-004' ? 'Vendor response received – bid revised to Rev B, leveling updated' : 'Vendor response received – clarification resolved', 'ok');
+  render();
+}
+
+/* ---- leveling tab ---- */
+function renderLvl(p) {
+  const lv = levelAll(p);
+  const rows = lv.rows;
+  const money = (v, cls) => `<td class="${cls || ''}">${v === 0 ? '–' : (v > 0 ? '+' : '') + fmtK(v).replace('$-', '-$')}</td>`;
+  const cell = (fn, cls) => rows.map(r => r.incl ? fn(r) : `<td class="excl">·</td>`).join('');
+  const minT = lv.minT;
+  return `
+  <div class="assump">
+    <span style="font-weight:700;color:var(--navy2)">Assumptions</span>
+    <label>EUR/USD <input type="number" step="0.01" value="${S.eurRate}" onchange="S.eurRate=+this.value;render()"></label>
+    <label>FX hedge % <input type="number" step="0.5" value="${S.hedgePct}" onchange="S.hedgePct=+this.value;render()"></label>
+    <label><input type="checkbox" ${S.inclSpares ? 'checked' : ''} onchange="S.inclSpares=this.checked;render()"> Level with 2-yr spares</label>
+    <span class="sep"></span>
+    <span style="font-weight:700;color:var(--navy2)">Weights</span>
+    <span class="wrow">Cost <input type="range" min="0" max="100" step="5" value="${S.weights.c}" oninput="S.weights.c=+this.value;render()"><span class="wv">${S.weights.c}</span></span>
+    <span class="wrow">Schedule <input type="range" min="0" max="100" step="5" value="${S.weights.s}" oninput="S.weights.s=+this.value;render()"><span class="wv">${S.weights.s}</span></span>
+    <span class="wrow">Risk <input type="range" min="0" max="100" step="5" value="${S.weights.r}" oninput="S.weights.r=+this.value;render()"><span class="wv">${S.weights.r}</span></span>
+  </div>
+  <div class="card" style="padding:6px 10px;overflow-x:auto">
+  <table class="lvl">
+    <tr><th>PKG-L1-210 · ${rows.length} bids</th>${rows.map(r => `<th class="${!r.incl ? 'excl' : lv.rec && r.b.id === lv.rec.b.id ? 'rec' : ''}">${esc(r.b.vendor)}${lv.rec && r.b.id === lv.rec.b.id && r.incl ? ' ★' : ''}${(c => c ? '<span style="display:block;font-size:9px;color:var(--amber);font-weight:700">' + c + ' unverified</span>' : '')(Object.values(r.b.fields).filter(f => !f.vfy).length)}<br><label style="font-size:10px;font-weight:400;color:var(--muted);cursor:pointer"><input type="checkbox" ${r.incl ? 'checked' : ''} onchange="S.excluded['${r.b.id}']=!this.checked;render()"> include</label></th>`).join('')}</tr>
+    <tr><td>Quoted base <span class="cell-note">as received</span></td>${cell(r => `<td>${r.b.fields.base.label || fmtK(r.b.fields.base.v)}<span class="src-ico" onclick="openBid('${r.b.id}')">⧉ src</span></td>`)}</tr>
+    <tr><td>Incoterms</td>${cell(r => `<td>${esc(String(r.b.fields.incoterms.v))}</td>`)}</tr>
+    ${rows.some(r => r.b.fields.base.cur === 'EUR') ? `<tr><td>FX to USD @ ${S.eurRate}</td>${cell(r => r.b.fields.base.cur === 'EUR' ? `<td>${fmtK(r.L.baseUSD)}</td>` : '<td>–</td>')}</tr>` : ''}
+    <tr><td>+ Freight to site</td>${cell(r => money(r.L.freight))}</tr>
+    <tr><td>+ Spares (2 yr)${S.inclSpares ? '' : ' <span class="cell-note">off</span>'}</td>${cell(r => money(r.L.spares))}</tr>
+    <tr><td>+ Scope gaps</td>${cell(r => r.L.scope ? `<td class="gap">+${fmtK(r.L.scope).slice(1)}<span class="cell-note">${esc(r.b.fields.scope.note || '')}</span></td>` : '<td>–</td>')}</tr>
+    <tr><td>+ FX hedge (${S.hedgePct}%)</td>${cell(r => money(r.L.fxRisk))}</tr>
+    <tr class="total"><td>Leveled total</td>${cell(r => `<td class="${r.L.total === minT ? 'best' : ''}">${fmtK(r.L.total)}</td>`)}</tr>
+    <tr><td>Lead time</td>${cell(r => `<td class="${r.L.lead === Math.min(...rows.filter(x => x.incl).map(x => x.L.lead)) ? 'best' : ''}">${r.L.lead} wk</td>`)}</tr>
+    <tr><td>Open exceptions</td>${cell(r => `<td>${r.L.exc ? `<span class="chip flag">${r.L.exc}</span>` : '<span class="chip ok">0</span>'}</td>`)}</tr>
+    <tr><td>Weighted score</td>${cell(r => `<td style="${lv.rec && r.b.id === lv.rec.b.id ? 'color:var(--blue);font-weight:700' : ''}">${r.score ?? '–'}</td>`)}</tr>
+  </table>
+  </div>
+  <div class="recbox">${recText(lv)}</div>
+  <div style="margin-top:14px;text-align:right"><button class="btn-primary" onclick="go('pkg','crys','dec')">Draft decision record →</button></div>`;
+}
+
+/* ---- decision tab ---- */
+function renderDec(p) {
+  const lv = levelAll(p);
+  const r = lv.rec;
+  if (!r) return '<div class="card"><div class="emptybox">Include at least one bid in leveling.</div></div>';
+  const cheapest = lv.rows.filter(x => x.incl).sort((a, b) => a.L.total - b.L.total)[0];
+  return `
+  <div class="split">
+    <div class="panel">
+      <h3>Award recommendation – draft</h3>
+      <div class="pagehead" style="margin:4px 0 8px"><h1 style="font-size:16px">${esc(r.b.vendor)}</h1><span class="chip status-level">score ${r.score}</span></div>
+      <div class="vrow"><span class="k">Leveled total</span><span class="v">${fmtK(r.L.total)}</span></div>
+      <div class="vrow"><span class="k">Lead time</span><span class="v">${r.L.lead} weeks</span></div>
+      <div class="vrow"><span class="k">vs. lowest leveled</span><span class="v">${r === cheapest ? 'is lowest' : '+' + fmtK(r.L.total - cheapest.L.total).slice(1) + ` · ${cheapest.L.lead - r.L.lead} wk faster`}</span></div>
+      <div class="vrow"><span class="k">Open exceptions</span><span class="v">${r.L.exc}</span></div>
+      <div class="vrow"><span class="k">Weights at decision</span><span class="v">cost ${S.weights.c} · sched ${S.weights.s} · risk ${S.weights.r}</span></div>
+      <h3 style="margin-top:16px">Sign-off</h3>
+      <div class="vrow"><span class="k">Procurement lead</span><span class="v" style="color:var(--green)">✓ G. Apel</span></div>
+      <div class="vrow"><span class="k">Process engineering</span><span class="v" style="color:var(--green)">✓ S. Okafor</span></div>
+      <div class="vrow"><span class="k">Finance</span><span class="v" style="color:var(--amber)">pending</span></div>
+      <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn-ghost" onclick="window.print()">Print</button>
+        <button class="btn-ghost" onclick="dlJSON()">Download JSON</button>
+        <button class="btn-primary" onclick="toast('Handoff to PO / contract execution is the next roadmap step (workflow step 7)','info')">Send to contracting →</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Audit trail – every number has a history</h3>
+      <div class="audit">${p.audit.map(a => `<div class="audit-row"><span class="audit-t">${a.t}</span><span class="audit-w">${esc(a.who)}</span><span>${esc(a.what)}</span></div>`).join('')}</div>
+    </div>
+  </div>
+  <div class="footnote">The decision record becomes the contract baseline: leveled scope + exceptions carried into step 7, where scope gaps otherwise turn into change orders.</div>`;
+}
+function dlJSON() {
+  const p = crys(); const lv = levelAll(p);
+  const out = { package: p.tagNo, name: p.name, decision: lv.rec ? lv.rec.b.vendor : null, weights: S.weights, assumptions: { eurRate: S.eurRate, hedgePct: S.hedgePct, inclSpares: S.inclSpares }, leveling: lv.rows.map(r => ({ vendor: r.b.vendor, included: r.incl, leveledUSD: r.L.total, leadWeeks: r.L.lead, exceptions: r.b.exceptions, score: r.score })), audit: p.audit };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
+  a.download = p.tagNo + '-decision-record.json'; a.click();
+}
+
+/* ============ LIVE INTAKE ============ */
+function toggleLive() {
+  S.livePanelOpen = !S.livePanelOpen;
+  renderLive();
+}
+function renderLive() {
+  const el = $('livePanel');
+  el.style.display = S.livePanelOpen ? 'block' : 'none';
+  $('liveDot').className = 'live-dot' + (S.polling ? ' on' : '');
+  if (!S.livePanelOpen) return;
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <h2 style="margin:0">Live bid intake</h2>
+      <span class="chip ${S.polling ? 'ok' : 'status-due'}">${S.polling ? 'listening' : 'offline mode'}</span>
+      <button class="modal-x" style="position:static;margin-left:auto" onclick="toggleLive()">✕</button>
+    </div>
+    <div class="qrbox">
+      <div id="qr"></div>
+      <div style="font-size:12px;color:var(--muted);text-align:center">${FORM_URL ? 'Scan to submit a bid from your phone' : 'No form URL configured – set FORM_URL & LIVE_DB_URL in this file.<br>Offline mode still works:'}</div>
+      <button class="btn-primary" onclick="simulateBid()">Simulate incoming bid</button>
+      <div class="footnote">or press <span class="kbd">b</span> anywhere</div>
+    </div>
+    <div id="liveList">${S.liveBids.length ? S.liveBids.map((lb, i) => `
+      <div class="lvbid">
+        <div style="display:flex;gap:8px;align-items:center"><b>${esc(lb.company || lb.name || 'Unknown vendor')}</b><span class="td-sub">${lb.t}</span>${lb.added ? '<span class="chip ok">added</span>' : ''}</div>
+        <div class="raw">${esc(lb.raw)}</div>
+        ${lb.extracting ? '<div class="extract-anim pulse" id="exanim_' + i + '">⟳ extracting fields…</div>' : lb.added ? '' : `<button class="btn-ghost" onclick="extractLive(${i})">Extract &amp; add to PKG-L1-210</button>`}
+      </div>`).join('') : '<div class="emptybox">Waiting for bids…</div>'}</div>`;
+  if (FORM_URL && window.QRCode) { $('qr').innerHTML = ''; new QRCode($('qr'), { text: FORM_URL, width: 132, height: 132 }); }
+}
+
+const SIM_POOL = [
+  { name: 'Panelist demo', company: 'Gulf Coast Thermal LLC', raw: 'Hi, Gulf Coast Thermal here. We can do the crystallizer package for $2.95M, FOB Houston. Lead time about 34 weeks. Note our price excludes the vacuum skid and site commissioning. Spares quoted separately at $80k. Offer valid 90 days.' },
+  { name: 'Panelist demo', company: 'Beckmann Verfahrenstechnik', raw: 'Proposal: EUR 2.61 million for complete MVR crystallizer system, DAP Texas site. 40 weeks delivery. Includes spares and commissioning. Payment 30/60/10.' },
+  { name: 'Panelist demo', company: 'Prairie Process Works', raw: 'We quote $3,300,000 turnkey DDP including vacuum system, spares, commissioning and site performance test. 28 week schedule, firm. Validity 180 days.' }
+];
+let simIdx = 0;
+function simulateBid() {
+  const s = SIM_POOL[simIdx++ % SIM_POOL.length];
+  ingestLive({ ...s, t: now() });
+}
+function ingestLive(lb) {
+  lb.raw = String(lb.raw || '').slice(0, 900);
+  S.liveBids.unshift(lb);
+  if (!S.livePanelOpen) { S.livePanelOpen = true; }
+  toast(`New bid received – ${esc(lb.company || lb.name || 'unknown vendor')}`, 'bid');
+  renderLive();
+}
+
+/* deterministic "AI" extraction – regex keyword spotting over free text */
+function extractFields(raw) {
+  const t = raw.replace(/ /g, ' ');
+  const out = {}; const missing = [];
+  const cur = /€|\bEUR\b/i.test(t) ? 'EUR' : 'USD';
+  let price = null;
+  const pm = t.match(/(?:USD|EUR|\$|€)\s?([\d.,]+)\s?(million|mm?|k|thousand)?/i) || t.match(/([\d.,]+)\s?(million|mm?|k)\b/i);
+  if (pm) {
+    let n = parseFloat(pm[1].replace(/,/g, ''));
+    const unit = (pm[2] || '').toLowerCase();
+    if (unit.startsWith('m')) n *= 1e6; else if (unit === 'k' || unit === 'thousand') n *= 1e3;
+    if (n < 1000) n *= 1e6;
+    price = Math.round(n);
+  }
+  out.base = price ? { v: price, cur, conf: 'hi', vfy: false, label: (cur === 'EUR' ? '€' : '$') + price.toLocaleString() } : (missing.push('base price'), { v: 0, cur, conf: 'lo', vfy: false, label: 'not found' });
+  const inco = t.match(/\b(EXW|FOB|CIF|CFR|DAP|DDP|FCA)\b/i);
+  out.incoterms = inco ? { v: inco[1].toUpperCase(), conf: 'hi', vfy: false } : (missing.push('Incoterms'), { v: 'not stated', conf: 'lo', vfy: false });
+  const incoU = inco ? inco[1].toUpperCase() : '';
+  out.freight = ['DDP', 'DAP'].includes(incoU) ? { v: 0, note: 'included (' + incoU + ')', conf: 'hi', vfy: false } : { v: 130000, note: 'estimated – ' + (incoU || 'terms unknown'), conf: 'md', vfy: false };
+  const spIncl = /spares?[^.]{0,40}(includ|incl\b)/i.test(t);
+  const spM = t.match(/spares?[^.]{0,40}?\$?([\d,]+)\s?k?/i);
+  out.spares = spIncl ? { v: 0, note: 'included', conf: 'hi', vfy: false } : spM ? { v: (x => x < 1000 ? x * 1000 : x)(parseFloat(spM[1].replace(/,/g, ''))), note: 'quoted option', conf: 'md', vfy: false } : (missing.push('spares'), { v: 90000, note: 'not stated – placeholder', conf: 'lo', vfy: false });
+  const exc = [];
+  (t.match(/[^.]*\b(exclud\w+|not includ\w+|by others)\b[^.]*/gi) || []).forEach(s => exc.push(s.trim().slice(0, 110)));
+  out.scope = exc.length ? { v: 240000, note: 'detected exclusion – est. adder, edit in leveling', conf: 'md', vfy: false } : { v: 0, note: 'no exclusions detected', conf: 'md', vfy: false };
+  const lead = t.match(/(\d{1,3})\s*(?:weeks?|wks?|semanas)/i);
+  out.lead = lead ? { v: +lead[1], conf: 'hi', vfy: false } : (missing.push('lead time'), { v: 40, conf: 'lo', vfy: false });
+  const val = t.match(/valid\w*[^\d]{0,10}(\d{1,3})\s*days/i);
+  out.validity = val ? { v: val[1] + ' days', conf: 'hi', vfy: false } : (missing.push('validity'), { v: 'not stated', conf: 'lo', vfy: false });
+  const pay = t.match(/(\d{1,2}\s*\/\s*\d{1,2}\s*\/\s*\d{1,2}|\d{1,2}%\s*(?:down|with order|anticipo)[^.]{0,40})/i);
+  out.payment = pay ? { v: pay[1], conf: 'md', vfy: false } : { v: 'not stated', conf: 'lo', vfy: false };
+  out.materials = { v: 'not stated – RFI', conf: 'lo', vfy: false };
+  return { fields: out, exceptions: exc, missing };
+}
+function extractLive(i) {
+  const lb = S.liveBids[i];
+  lb.extracting = true; renderLive();
+  setTimeout(() => {
+    const ex = extractFields(lb.raw);
+    const p = crys();
+    const id = 'live' + Date.now();
+    const doc = `From: ${lb.name || 'panelist'} <live-demo>\nReceived: ${lb.t} via Bid Room live intake\n\n` + lb.raw;
+    p.bids.push({ id, vendor: lb.company || lb.name || 'Live vendor', loc: 'Live submission', rev: 'A', via: 'Live intake · free text', live: true, fields: ex.fields, exceptions: ex.exceptions, fx: 0, doc, revHistory: [{ rev: 'A', t: 'Jul 10, ' + now(), via: 'Live intake · free text', chg: ['Initial receipt – ' + (ex.missing.length ? ex.missing.length + ' field(s) missing, clarification drafted' : 'all fields extracted') ] }] });
+    if (ex.missing.length) {
+      const rid = 'CL-' + String(p.rfis.length + 1).padStart(3, '0');
+      p.rfis.push({ id: rid, vendor: lb.company || 'Live vendor', q: `Missing from live bid: ${ex.missing.join(', ')} – please provide`, status: 'open', auto: true, thread: [{ who: 'Bid Room · auto-draft', us: true, t: 'Jul 10, ' + now(), txt: `Your bid could not be leveled on: ${ex.missing.join(', ')}. Please confirm so we can complete evaluation.` }] });
+      toast(`Gaps detected (${ex.missing.join(', ')}) – clarification auto-drafted`, 'info');
+    }
+    audit(p, `Live bid ingested from ${lb.company || 'panelist'} – extraction ${Object.keys(ex.fields).length} fields, ${ex.missing.length} gaps`);
+    lb.extracting = false; lb.added = true;
+    toast(`${esc(lb.company || 'Bid')} added to leveling – ${ex.missing.length ? ex.missing.length + ' gaps flagged' : 'complete'}`, 'ok');
+    if (S.view === 'pkg') render();
+    renderLive();
+  }, 1400);
+}
+
+/* Firebase RTDB polling (REST, no SDK) */
+async function poll() {
+  if (!LIVE_DB_URL) return;
+  try {
+    const res = await fetch(LIVE_DB_URL.replace(/\/$/, '') + '/bids.json');
+    const data = await res.json();
+    S.polling = true;
+    if (data) Object.entries(data).forEach(([k, v]) => {
+      if (!S.seenKeys[k]) {
+        S.seenKeys[k] = 1;
+        if (!S.bootDone) return;
+        ingestLive({ name: v.name, company: v.company, raw: [v.price ? 'Price: ' + v.price : '', v.leadWeeks ? 'Lead time: ' + v.leadWeeks + ' weeks' : '', v.incoterms ? 'Incoterms: ' + v.incoterms : '', v.notes || ''].filter(Boolean).join('. '), t: now() });
+      }
+    });
+  } catch (e) { S.polling = false; }
+  $('liveDot').className = 'live-dot' + (S.polling ? ' on' : '');
+}
+if (LIVE_DB_URL) { poll().then(() => { S.bootDone = true; }); setInterval(poll, 2500); } else { S.bootDone = true; }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'b' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) simulateBid();
+  if (e.key === 'm' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) simulateSms();
+  if (e.key === 'Escape') closeModal();
+});
+
+
+
+/* ============ BID REVISION HISTORY ============ */
+(function seedRevs() {
+  const seeds = {
+    vantherm: [
+      { rev:'A', t:'Jun 27', via:'Email · PDF', chg:['Initial receipt – $3,120k DDP site, 30 wk (stated as "target")'] },
+      { rev:'B', t:'Jul 2', via:'Email · PDF', chg:['Delivery confirmed firm at 30 wk ex-works (CL-003)', 'LDs per RFQ Section 7 accepted'] }
+    ],
+    coastal: [
+      { rev:'A', t:'Jun 29', via:'Email · Excel + PDF', chg:['Initial receipt – $2,680k EXW, 316L wetted parts, vacuum scope ambiguous'] },
+      { rev:'B', t:'Jul 3', via:'Email · RFI response', chg:['Duplex 2205 confirmed at no adder (CL-001)', 'Vacuum system confirmed included in base (CL-002)'] }
+    ],
+    nordkessel: [ { rev:'A', t:'Jun 30', via:'Vendor portal · PDF', chg:['Initial receipt – €2,540k FOB Hamburg, 38 wk'] } ],
+    andes: [ { rev:'A', t:'Jun 30', via:'Email · scanned PDF', chg:['Initial receipt – $2,890k DAP, 36 wk; vacuum exclusion detected in T&Cs p.7 (low confidence, human-confirmed)'] } ]
+  };
+  crys().bids.forEach(b => { b.revHistory = seeds[b.id] || [{ rev:'A', t:'Jul 10', via:'Live intake', chg:['Initial receipt'] }]; });
+})();
+function pushRev(b, rev, via, chg) {
+  b.rev = rev;
+  (b.revHistory = b.revHistory || []).push({ rev, t: 'Jul 10, ' + now(), via, chg });
+}
+function revHistoryHtml(b) {
+  const h = b.revHistory || [];
+  if (!h.length) return '';
+  return '<h3 style="margin-top:14px">Revision history</h3>' + h.map(r => `
+    <div style="display:flex;gap:10px;padding:7px 8px;border-bottom:1px solid var(--line);font-size:12px;align-items:flex-start">
+      <span class="chip site" style="flex-shrink:0">Rev ${r.rev}</span>
+      <div style="flex:1">
+        <div style="color:var(--muted);font-size:11px">${esc(r.t)} · ${esc(r.via)}</div>
+        ${r.chg.map(c => `<div style="color:var(--txt)">${esc(c)}</div>`).join('')}
+      </div>
+    </div>`).join('') + '<div class="footnote" style="margin-top:6px">Revisions never overwrite – leveling always reads the latest rev; every prior number stays reconstructible.</div>';
+}
+
+/* ============ UNIVERSAL INTAKE QUEUE ============ */
+S.intake = [
+  { id:'in1', ch:'email', from:'bids@prairieprocess.com', t:'Today 08:41',
+    raw:'Subject: RFQ PKG-L1-230 – Prairie Process Works proposal\n\nPlease find attached our proposal for the recessed-plate\nfilter press package: USD 1,180,000 DDP site, 26 weeks,\n2-yr spares included. Validity 120 days.\n\n[filter-press-proposal.pdf · 2.1 MB]',
+    cls:{pkg:'filter', pkgName:'Filter press package', vendor:'Prairie Process Works', intent:'New bid', conf:97, level:'hi'}, why:'RFQ number PKG-L1-230 in the subject line · sender domain registered to Prairie Process Works', status:'accepted', autoRouted:true, result:'Auto-routed → PKG-L1-230' },
+  { id:'in3', ch:'vm', from:'Nordkessel GmbH · H. Brandt · 0:38', t:'Today 10:02',
+    raw:'"...good news on the logistics side, ocean freight has come down since our offer, we can revise the freight budget from one eighteen down to ninety five thousand US dollars, I will confirm this by email..." (auto-transcribed)',
+    cls:{pkg:'crys', pkgName:'Evaporator–crystallizer package', vendor:'Nordkessel GmbH', intent:'Bid revision', conf:78, level:'md'}, why:'caller ID matches Nordkessel contact · transcript references an active offer · auto-transcription lowers confidence', status:'pending' },
+  { id:'in4', ch:'email', from:'sales@ridgelinemech.com', t:'Today 11:27',
+    raw:'Subject: RE: RFQ\n\nApologies for the delay on our end. Quick question – should\nthe crusher liners be quoted separately from the mantle, or\nbundled? Also, is the due date firm?',
+    cls:{pkg:'crush', pkgName:'Primary crusher rebuild?', vendor:'Ridgeline Mechanical', intent:'Vendor question', conf:41, level:'lo'}, why:'no RFQ number found · sender not in the vendor registry · "crusher liners" weakly suggests PKG-C1-050', status:'pending' }
+];
+
+function renderIntake() {
+  const pending = S.intake.filter(i => i.status === 'pending').length;
+  const chLabel = { email:'EMAIL', text:'TEXT / SMS', vm:'VOICEMAIL', upload:'UPLOAD' };
+  return `
+  <div class="crumb"><a onclick="go('dash')" style="cursor:pointer">Packages</a> / Intake</div>
+  <div class="pagehead"><h1>Intake</h1><span class="chip ${pending ? 'status-clarify' : 'ok'}">${pending} awaiting routing</span><span class="chip site">auto-route at ≥ 90%</span><button class="btn-ghost" style="margin-left:auto" onclick="simulateSms()">Simulate: SMS arrives</button></div>
+  <div class="subline">Every item is classified (package · vendor · intent) with a confidence score. At or above 90% it auto-routes straight through – this queue holds only what the system is not sure about, plus a visible log of what it routed on its own.</div>
+  ${S.intake.map(it => `
+  <div class="icard ${it.status !== 'pending' ? 'done' : ''}">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="ch ${it.ch}">${chLabel[it.ch]}</span>
+      <span style="font-size:12.5px;font-weight:600;color:var(--navy)">${esc(it.from)}</span>
+      <span class="td-sub">${it.t}</span>
+      ${it.status === 'classifying' ? '<span class="extract-anim pulse" style="margin-left:auto">⟳ classifying… threshold 90%</span>' : it.status !== 'pending' ? `<span class="chip ok" style="margin-left:auto">✓ ${esc(it.result || 'processed')}</span>` : ''}
+    </div>
+    <div style="margin-top:10px">${it.ch === 'text' ? `<div class="bubble">${esc(it.raw)}</div>` : `<div class="raw" style="max-height:150px">${esc(it.raw)}</div>`}</div>
+    <div class="iclass">
+      <span style="color:var(--muted);font-weight:600">DETECTED</span>
+      <span class="conf ${it.cls.level}"></span><span style="font-weight:700;color:var(--navy)">${it.cls.conf}%</span>
+      <span>→ ${esc(it.cls.pkgName)}</span><span style="color:var(--line-dk)">·</span>
+      <span>${esc(it.cls.vendor)}</span><span style="color:var(--line-dk)">·</span>
+      <span class="chip ${it.cls.intent === 'New bid' ? 'status-level' : it.cls.intent === 'Bid revision' ? 'plant' : 'status-clarify'}">${it.cls.intent}</span>
+      ${it.cls.conf >= 90 ? '<span style="color:var(--green);font-weight:700">≥ 90% – auto-routed</span>' : it.cls.level === 'lo' ? '<span style="color:var(--red);font-weight:700">' + it.cls.conf + '% < 90% – confirm target</span>' : '<span style="color:var(--amber);font-weight:700">' + it.cls.conf + '% < 90% – held for review</span>'}
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px"><span style="font-weight:700;color:var(--slate)">WHY</span> · ${esc(it.why || '')}</div>
+    ${it.status === 'pending' ? `
+    <div class="iactions">
+      ${it.cls.level === 'lo' ? `<select id="route_${it.id}" style="font-size:12px;padding:4px 8px">${DATA.packages.map(p => `<option value="${p.id}" ${p.id === it.cls.pkg ? 'selected' : ''}>${esc(p.name)} (${p.tagNo})</option>`).join('')}</select>
+      <button class="btn-primary" onclick="acceptIntake('${it.id}')">Confirm route</button>` :
+      `<button class="btn-ghost" onclick="toast('Re-route: pick a different package or vendor – full control, nothing auto-commits','info')">Re-route</button>
+      <button class="btn-primary" onclick="acceptIntake('${it.id}')">Accept → process</button>`}
+    </div>` : ''}
+  </div>`).join('')}
+  <div class="footnote">Live QR-form bids land in this same queue in production – the demo fast-tracks them to the package. Adding a transport (WhatsApp, portal API, call recorder) is an adapter into this queue, not a new feature.</div>`;
+}
+
+let smsFired = false;
+function simulateSms() {
+  if (smsFired) { toast('SMS scenario already played – refresh to reset', 'info'); return; }
+  smsFired = true;
+  const it = { id:'in2', ch:'text', from:'+1 (713) 555-0184 · J. Reyes, Vantherm', t:'Just now',
+    raw:'Hi Garrett – following our call: we can hold the $3.12M and pull delivery in to 28 weeks if the PO lands by Jul 24. We would need the site performance test waived (FAT stands). Formal letter tomorrow.',
+    cls:{pkg:'crys', pkgName:'Evaporator–crystallizer package', vendor:'Vantherm Process Systems', intent:'Bid revision', conf:95, level:'hi'},
+    why:'phone number registered to J. Reyes (Vantherm) · vendor has exactly one active bid, PKG-L1-210', status:'classifying' };
+  S.intake.unshift(it);
+  toast('New message received – classifying against the 90% threshold…', 'bid');
+  if (S.view === 'intake') render();
+  setTimeout(() => {
+    const p = crys();
+    const b = p.bids.find(x => x.id === 'vantherm');
+    pushRev(b, 'C', 'SMS · +1 (713) 555-0184', ['Lead time 30→28 wk – conditional on PO by Jul 24', 'Site performance test waived, FAT stands – SME sign-off pending']);
+    b.fields.lead = { v: 28, note: 'Rev C via SMS – conditional', conf: 'hi', vfy: false, src: 's9' };
+    b.exceptions.push('Site performance test waived – conditional, SME sign-off pending');
+    b.doc += '\n\n– SMS thread · +1 (713) 555-0184 · Jul 10 –\n[s9]"We can hold the $3.12M and pull delivery in to 28 weeks\nif the PO lands by Jul 24. Site performance test waived,\nFAT stands. Formal letter tomorrow."[/s9]';
+    audit(p, 'Vantherm Rev C auto-routed from SMS (95%, above the 90% threshold) – lead 30→28 wk (conditional); provenance: message thread; verification pending');
+    it.status = 'accepted'; it.autoRouted = true; it.result = 'Auto-routed → Vantherm Rev C · PKG-L1-210';
+    toast('95% ≥ 90% threshold – auto-routed: Vantherm Rev C, leveling updated', 'ok');
+    render();
+  }, 1200);
+}
+function acceptIntake(id) {
+  const it = S.intake.find(x => x.id === id);
+  if (!it || it.status !== 'pending') return;
+  const p = crys();
+  if (id === 'in3') {
+    const b = p.bids.find(x => x.id === 'nordkessel');
+    pushRev(b, 'B', 'Voicemail · auto-transcribed', ['Freight budget $118k→$95k – email confirmation requested']);
+    b.fields.freight = { v: 95000, note: 'revised via voicemail', conf: 'md', vfy: false, src: 's9' };
+    b.doc += '\n\n– Voicemail transcript (auto) · 0:38 · Jul 10 –\n[s9]"...ocean freight has come down since our offer, we can\nrevise the freight budget from one eighteen down to ninety\nfive thousand US dollars, I will confirm by email..."[/s9]';
+    audit(p, 'Nordkessel Rev B ingested from voicemail – freight $118k→$95k; transcript provenance; email confirmation requested');
+    it.result = 'Rev B → Nordkessel · PKG-L1-210';
+    toast('Nordkessel freight revised to $95k from voicemail – leveling updated', 'bid');
+  }
+  if (id === 'in4') {
+    const sel = $('route_' + id);
+    const target = DATA.packages.find(x => x.id === (sel ? sel.value : it.cls.pkg));
+    target.audit.push({ t: 'Jul 10, ' + now(), who: 'G. Apel', what: 'Vendor question from Ridgeline Mechanical routed here from intake; clarification thread opened' });
+    target.rfis.push({ id: target.tagNo.slice(-3) + '-Q' + (target.rfis.length + 1), vendor: 'Ridgeline Mechanical', q: 'Quote crusher liners separately from the mantle? Is the due date firm?', status: 'open', auto: false, thread: [{ who: 'Ridgeline Mechanical (routed from intake)', us: false, t: 'Jul 10, ' + now(), txt: it.raw }] });
+    if (target.id === 'crush') target.note = '3 of 4 bids in · 3 open RFIs';
+    it.result = 'Question → ' + target.tagNo;
+    toast('Routed to ' + target.name + ' as a vendor question', 'ok');
+  }
+  it.status = 'accepted';
+  render();
+}
+
+/* ============ ROOT RENDER ============ */
+function render() {
+  $('app').innerHTML = S.view === 'dash' ? renderDash() : S.view === 'intake' ? renderIntake() : renderPkg();
+  const ib = $('intakeBadge'); if (ib) ib.textContent = S.intake.filter(i => i.status === 'pending').length;
+}
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Submit a bid · Bid Room</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 940 940'%3E%3Cg fill='%231a91a5' transform='translate(233.5 73.5)'%3E%3Cpath d='M236.5 0 L291 92 L273 152 L273 684 L291 718 L236.5 793 L182 718 L200 684 L200 152 L182 92 Z'/%3E%3Cpath d='M0 175 L73 247 L73 684 L0 684 Z'/%3E%3Cpath d='M473 175 L400 247 L400 684 L473 684 Z'/%3E%3Cpath d='M73 332 C112 392 155 442 200 464 L200 545 C150 522 105 472 73 422 Z'/%3E%3Cpath d='M400 332 C361 392 318 442 273 464 L273 545 C323 522 368 472 400 422 Z'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+:root{--blue:#004ddd;--navy:#000427;--bg:#f5f5f5;--line:#d9d9d9;--muted:#6b6b6b;--teal:#0aa78f}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:#1e1e1f;font-size:15px;min-height:100vh}
+header{background:#0a0a0a;color:#fff;padding:14px 18px;display:flex;align-items:center;gap:9px}
+header svg{display:block}
+.bn{font-weight:600;font-size:13px;letter-spacing:.12em}
+.bs{color:#838aa6;font-size:10px;letter-spacing:.05em;padding-left:10px;border-left:1px solid #2c2c2c}
+.wrap{max-width:460px;margin:0 auto;padding:22px 18px 50px}
+h1{font-size:19px;color:var(--navy);margin-bottom:4px}
+.sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+label{display:block;font-size:12.5px;font-weight:600;color:var(--navy);margin:14px 0 5px}
+input,select,textarea{width:100%;font-family:inherit;font-size:15px;border:1px solid var(--line);border-radius:8px;padding:11px 12px;background:#fff}
+input:focus,select:focus,textarea:focus{outline:2px solid #78abfd}
+textarea{min-height:96px;resize:vertical}
+.row{display:flex;gap:10px}
+.row>div{flex:1}
+.hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+button{width:100%;margin-top:22px;background:var(--blue);color:#fff;font-family:inherit;font-size:15px;font-weight:600;border:none;border-radius:8px;padding:14px;cursor:pointer}
+button:active{background:#0040b8}
+button:disabled{background:#9db9ef}
+.ok{background:#fff;border:1px solid var(--line);border-radius:12px;padding:34px 22px;text-align:center;margin-top:30px}
+.ok .big{font-size:40px;margin-bottom:10px}
+.warn{background:#fdf3e0;border:1px solid #e8c98a;color:#854f0b;border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:14px}
+.err{color:#c0392b;font-size:13px;margin-top:10px;display:none}
+</style>
+</head>
+<body>
+<header>
+  <svg width="12" height="20" viewBox="0 0 473 793"><g fill="#1a91a5"><path d="M236.5 0 L291 92 L273 152 L273 684 L291 718 L236.5 793 L182 718 L200 684 L200 152 L182 92 Z"/><path d="M0 175 L73 247 L73 684 L0 684 Z"/><path d="M473 175 L400 247 L400 684 L473 684 Z"/><path d="M73 332 C112 392 155 442 200 464 L200 545 C150 522 105 472 73 422 Z"/><path d="M400 332 C361 392 318 442 273 464 L273 545 C323 522 368 472 400 422 Z"/></g></svg>
+  <span class="bn">BID ROOM</span><span class="bs">VENDOR SUBMISSION</span>
+</header>
+<div class="wrap" id="wrap">
+  <h1>Submit your bid</h1>
+  <div class="sub">RFQ PKG-L1-210 · Evaporator–crystallizer package · Lithium One</div>
+  <div class="warn" id="cfgWarn" style="display:none">Demo not configured – set DB_URL inside this file.</div>
+  <form id="f" onsubmit="return send(event)">
+    <label>Your name</label>
+    <input id="name" placeholder="Alex Chen" required maxlength="60">
+    <label>Vendor company</label>
+    <input id="company" placeholder="Acme Process Equipment" required maxlength="80">
+    <div class="row">
+      <div>
+        <label>Price</label>
+        <input id="price" placeholder="2.9M or 2,900,000" required maxlength="20" inputmode="decimal">
+      </div>
+      <div>
+        <label>Currency</label>
+        <select id="cur"><option>USD</option><option>EUR</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Lead time (weeks)</label>
+        <input id="lead" type="number" min="4" max="120" placeholder="36" inputmode="numeric">
+      </div>
+      <div>
+        <label>Incoterms</label>
+        <select id="inco"><option value="">Not sure</option><option>EXW</option><option>FOB</option><option>DAP</option><option>DDP</option></select>
+      </div>
+    </div>
+    <label>Anything else?</label>
+    <textarea id="notes" maxlength="600" placeholder="Exclusions, spares, payment terms, validity… e.g. “price excludes the vacuum skid, spares quoted at $80k, valid 90 days”"></textarea>
+    <div class="hint">Free text is fine – extraction will structure it. Leave things out if you want to see the clarification workflow trigger.</div>
+    <button id="btn">Submit bid</button>
+    <div class="err" id="err">Couldn't reach the demo backend – check wifi and try again.</div>
+  </form>
+</div>
+<script>
+/* Paste the same Firebase Realtime Database URL used in bid-room.html */
+const DB_URL = "";
+
+if (!DB_URL) document.getElementById('cfgWarn').style.display = 'block';
+async function send(e) {
+  e.preventDefault();
+  const g = id => document.getElementById(id).value.trim();
+  const btn = document.getElementById('btn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  const payload = {
+    name: g('name'), company: g('company'),
+    price: g('cur') === 'EUR' ? '€' + g('price') : '$' + g('price'),
+    leadWeeks: g('lead'), incoterms: g('inco'), notes: g('notes'),
+    ts: Date.now()
+  };
+  try {
+    if (!DB_URL) throw new Error('not configured');
+    const r = await fetch(DB_URL.replace(/\/$/, '') + '/bids.json', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    if (!r.ok) throw new Error('http ' + r.status);
+    document.getElementById('wrap').innerHTML = `<div class="ok"><div class="big">✓</div><h1>Bid received</h1><div class="sub" style="margin:8px 0 0">Watch the big screen – your bid is being extracted and leveled${payload.notes ? '' : '. (You left the notes empty – expect a clarification request.)'}</div></div>`;
+  } catch (err) {
+    document.getElementById('err').style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Submit bid';
+  }
+  return false;
+}
+</script>
+</body>
+</html>
