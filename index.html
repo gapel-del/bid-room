@@ -191,6 +191,15 @@ table.lvl td.excl,table.lvl th.excl{opacity:.32}
 .icard.done{opacity:.62}
 .iclass{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fafafa;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:10px;font-size:12px}
 .iactions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px;align-items:center}
+.lform label{display:block;font-size:12px;font-weight:700;color:var(--navy2);margin:12px 0 5px}
+.lform input[type=text],.lform select,.lform textarea{width:100%}
+.lform textarea{min-height:90px}
+.srcpick{display:flex;gap:6px;flex-wrap:wrap}
+.srcpick .chip{cursor:pointer;border:1px solid var(--line-dk);background:#fff;color:var(--muted)}
+.srcpick .chip.on{background:var(--navy2);color:#fff;border-color:var(--navy2)}
+.evid{font-size:10px;font-weight:700;border-radius:4px;padding:2px 7px}
+.evid.verbatim{background:var(--teal-bg);color:var(--teal-txt)}
+.evid.recalled{background:var(--amber-bg);color:var(--amber)}
 .emptybox{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px}
 .footnote{font-size:11px;color:var(--slate);margin-top:8px}
 .kbd{font-family:var(--mono);font-size:10.5px;background:#eee;border:1px solid var(--line-dk);border-radius:4px;padding:0 5px}
@@ -848,17 +857,18 @@ function renderIntake() {
   const chLabel = { email:'EMAIL', text:'TEXT / SMS', vm:'VOICEMAIL', upload:'UPLOAD' };
   return `
   <div class="crumb"><a onclick="go('dash')" style="cursor:pointer">Packages</a> / Intake</div>
-  <div class="pagehead"><h1>Intake</h1><span class="chip ${pending ? 'status-clarify' : 'ok'}">${pending} awaiting routing</span><span class="chip site">auto-route at ≥ 90%</span><button class="btn-ghost" style="margin-left:auto" onclick="simulateSms()">Simulate: SMS arrives</button></div>
-  <div class="subline">Every item is classified (package · vendor · intent) with a confidence score. At or above 90% it auto-routes straight through – this queue holds only what the system is not sure about, plus a visible log of what it routed on its own.</div>
+  <div class="pagehead"><h1>Intake</h1><span class="chip ${pending ? 'status-clarify' : 'ok'}">${pending} awaiting routing</span><span class="chip site">auto-route at ≥ 90%</span><button class="btn-primary" style="margin-left:auto" onclick="logItem()">+ Log item</button><button class="btn-ghost" onclick="simulateSms()">Simulate: SMS arrives</button></div>
+  <div class="subline">Every item is classified (package · vendor · intent) with a confidence score. At or above 90% it auto-routes straight through – this queue holds only what the system is not sure about, plus a visible log of what it routed on its own. Anything no system can see – a text to your personal phone, notes from a call – gets logged by hand with “+ Log item” and flows through the same pipeline.</div>
   ${S.intake.map(it => `
   <div class="icard ${it.status !== 'pending' ? 'done' : ''}">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <span class="ch ${it.ch}">${chLabel[it.ch]}</span>
       <span style="font-size:12.5px;font-weight:600;color:var(--navy)">${esc(it.from)}</span>
       <span class="td-sub">${it.t}</span>
+      ${it.evid ? `<span class="evid ${it.evid}">${it.evid.toUpperCase()}</span>` : ''}${it.manual ? '<span class="ch upload">LOGGED BY HAND</span>' : ''}
       ${it.status === 'classifying' ? '<span class="extract-anim pulse" style="margin-left:auto">⟳ classifying… threshold 90%</span>' : it.status !== 'pending' ? `<span class="chip ok" style="margin-left:auto">✓ ${esc(it.result || 'processed')}</span>` : ''}
     </div>
-    <div style="margin-top:10px">${it.ch === 'text' ? `<div class="bubble">${esc(it.raw)}</div>` : `<div class="raw" style="max-height:150px">${esc(it.raw)}</div>`}</div>
+    <div style="margin-top:10px">${it.ch === 'text' ? `<div class="bubble">${esc(it.raw)}</div>` : `<div class="raw" style="max-height:150px">${esc(it.raw)}</div>`}${it.attach ? `<div class="footnote">Attachment: ${esc(it.attach)} – parsed in production</div>` : ''}</div>
     <div class="iclass">
       <span style="color:var(--muted);font-weight:600">DETECTED</span>
       <span class="conf ${it.cls.level}"></span><span style="font-weight:700;color:var(--navy)">${it.cls.conf}%</span>
@@ -879,6 +889,81 @@ function renderIntake() {
   <div class="footnote">Live QR-form bids land in this same queue in production – the demo fast-tracks them to the package. Adding a transport (WhatsApp, portal API, call recorder) is an adapter into this queue, not a new feature.</div>`;
 }
 
+const LOG_LABEL = { text: 'text message', vm: 'call notes', email: 'forwarded email', upload: 'document' };
+let logSrc = 'text', logEvid = 'verbatim';
+function logItem() {
+  const pkgs = DATA.packages.map(p => `<option value="${p.id}">${esc(p.name)} (${p.tagNo})</option>`).join('');
+  const srcs = [['text', 'Text message'], ['vm', 'Call notes'], ['email', 'Forwarded email'], ['upload', 'Document / photo']];
+  $('modalRoot').innerHTML = `<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:620px">
+    <button class="modal-x" onclick="closeModal()">✕</button>
+    <div class="pagehead" style="margin-bottom:2px"><h1 style="font-size:17px">Log an item</h1></div>
+    <div class="subline" style="margin-bottom:12px">For what no system can capture on its own – a text to your personal phone, notes from a call, paper. Same pipeline, same audit trail.</div>
+    <div class="panel lform" style="padding-top:6px">
+      <label>Source</label>
+      <div class="srcpick">${srcs.map(s => `<span class="chip ${s[0] === logSrc ? 'on' : ''}" onclick="logSrc='${s[0]}';this.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));this.classList.add('on')">${s[1]}</span>`).join('')}</div>
+      <label>From – vendor / contact</label>
+      <input type="text" id="lfrom" placeholder="J. Reyes, Vantherm – personal cell">
+      <label>Package</label>
+      <select id="lpkg"><option value="">Not sure – let the system suggest</option>${pkgs}</select>
+      <label>Evidence</label>
+      <div class="srcpick">
+        <span class="chip ${logEvid === 'verbatim' ? 'on' : ''}" onclick="logEvid='verbatim';this.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));this.classList.add('on')">Verbatim – exact words (paste / screenshot)</span>
+        <span class="chip ${logEvid === 'recalled' ? 'on' : ''}" onclick="logEvid='recalled';this.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));this.classList.add('on')">Recalled – my notes from memory</span>
+      </div>
+      <label>Content</label>
+      <textarea id="lraw" placeholder="Paste the message, or type what was said…"></textarea>
+      <label>Attachment – optional (screenshot, scan, .txt)</label>
+      <input type="file" id="lfile">
+      <div class="iactions"><button class="btn-primary" onclick="submitLogItem()">Log it</button></div>
+      <div class="footnote">Verbatim = the vendor's exact words. Recalled = your recollection – both are kept, labeled differently, because they carry different evidentiary weight.</div>
+    </div>
+  </div></div>`;
+}
+function submitLogItem() {
+  const from = $('lfrom').value.trim() || 'Unattributed';
+  const pkgSel = $('lpkg').value;
+  const raw0 = $('lraw').value.trim();
+  const f = $('lfile').files[0];
+  const finish = raw => {
+    if (!raw) { toast('Add content or an attachment before logging', 'info'); return; }
+    const it = { id: 'log' + Date.now(), ch: logSrc, from, t: 'Just now', raw: raw.slice(0, 900), evid: logEvid, manual: true };
+    if (f) it.attach = f.name + ' · ' + Math.max(1, Math.round(f.size / 1024)) + ' KB';
+    if (pkgSel) {
+      const target = DATA.packages.find(p => p.id === pkgSel);
+      it.cls = { pkg: target.id, pkgName: target.name, vendor: from, intent: 'Manual log', conf: 100, level: 'hi' };
+      it.why = 'package chosen by the person logging it – human match';
+      it.status = 'accepted'; it.result = 'Logged → ' + target.tagNo;
+      target.audit.push({ t: 'Jul 10, ' + now(), who: 'G. Apel', what: (logEvid === 'verbatim' ? 'Verbatim ' : 'Recalled ') + LOG_LABEL[logSrc] + ' logged manually from ' + from + (it.attach ? ' – attachment: ' + it.attach : '') });
+      toast('Logged to ' + target.name + ' – on the record, on the audit trail', 'ok');
+    } else {
+      const hit = DATA.packages.find(p => raw.toUpperCase().includes(p.tagNo));
+      const vhit = crys().bids.find(bd => raw.toLowerCase().includes(bd.vendor.split(' ')[0].toLowerCase()));
+      if (hit) {
+        it.cls = { pkg: hit.id, pkgName: hit.name, vendor: from, intent: 'Manual log', conf: 95, level: 'hi' };
+        it.why = 'RFQ number ' + hit.tagNo + ' found in the content';
+        it.status = 'accepted'; it.autoRouted = true; it.result = 'Auto-routed → ' + hit.tagNo;
+        hit.audit.push({ t: 'Jul 10, ' + now(), who: 'Bid Room', what: 'Manually logged ' + LOG_LABEL[logSrc] + ' auto-routed here – 95%, RFQ number in content' });
+        toast('95% ≥ 90% threshold – auto-routed to ' + hit.name, 'ok');
+      } else if (vhit) {
+        it.cls = { pkg: 'crys', pkgName: crys().name, vendor: vhit.vendor, intent: 'Manual log', conf: 82, level: 'md' };
+        it.why = 'vendor name matches ' + vhit.vendor + ' – no RFQ number found';
+        it.status = 'pending';
+        toast('82% < 90% – held for your confirmation', 'info');
+      } else {
+        it.cls = { pkg: 'crush', pkgName: 'Unknown – needs routing', vendor: from, intent: 'Manual log', conf: 45, level: 'lo' };
+        it.why = 'no RFQ number or known vendor found in the content';
+        it.status = 'pending';
+        toast('45% – below threshold, waiting for routing', 'info');
+      }
+    }
+    S.intake.unshift(it);
+    closeModal();
+    go('intake');
+  };
+  if (f && /\.(txt|md|csv)$/i.test(f.name) && !raw0) {
+    const fr = new FileReader(); fr.onload = () => finish(String(fr.result)); fr.readAsText(f);
+  } else finish(raw0 || (f ? '[attachment only: ' + f.name + ']' : ''));
+}
 let smsFired = false;
 function simulateSms() {
   if (smsFired) { toast('SMS scenario already played – refresh to reset', 'info'); return; }
@@ -924,6 +1009,15 @@ function acceptIntake(id) {
     if (target.id === 'crush') target.note = '3 of 4 bids in · 3 open RFIs';
     it.result = 'Question → ' + target.tagNo;
     toast('Routed to ' + target.name + ' as a vendor question', 'ok');
+  }
+  if (it.manual) {
+    const sel = $('route_' + id);
+    const target = DATA.packages.find(x => x.id === (sel ? sel.value : it.cls.pkg));
+    if (target) {
+      target.audit.push({ t: 'Jul 10, ' + now(), who: 'G. Apel', what: 'Manually logged item routed here from intake – ' + (it.evid || '') + ' ' + (LOG_LABEL[it.ch] || 'item') + ' from ' + it.from });
+      it.result = 'Routed → ' + target.tagNo;
+      toast('Routed to ' + target.name, 'ok');
+    }
   }
   it.status = 'accepted';
   render();
