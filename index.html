@@ -200,6 +200,9 @@ table.lvl td.excl,table.lvl th.excl{opacity:.32}
 .evid{font-size:10px;font-weight:700;border-radius:4px;padding:2px 7px}
 .evid.verbatim{background:var(--teal-bg);color:var(--teal-txt)}
 .evid.recalled{background:var(--amber-bg);color:var(--amber)}
+.lvledit{width:88px;text-align:right;border:1px solid transparent;background:transparent;font:inherit;font-size:12.5px;padding:2px 4px;border-radius:4px}
+.lvledit:hover,.lvledit:focus{border-color:var(--line-dk);background:#fff}
+.lvledit.ov{background:var(--amber-bg);border-color:var(--amber);font-weight:700}
 .emptybox{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px}
 .footnote{font-size:11px;color:var(--slate);margin-top:8px}
 .kbd{font-family:var(--mono);font-size:10.5px;background:#eee;border:1px solid var(--line-dk);border-radius:4px;padding:0 5px}
@@ -356,7 +359,7 @@ const S = {
   fCtx:'All', fSite:'All',
   eurRate:1.09, hedgePct:2, inclSpares:true,
   weights:{c:45, s:35, r:20},
-  excluded:{}, openRfi:null,
+  excluded:{}, openRfi:null, overrides:{},
   liveBids:[], seenKeys:{}, polling:false, livePanelOpen:false
 };
 
@@ -391,14 +394,16 @@ const siteChip = s => `<span class="chip site">${s}</span>`;
 function levelBid(b) {
   const cur = b.fields.base.cur || 'USD';
   const rate = cur === 'EUR' ? S.eurRate : 1;
-  const baseUSD = b.fields.base.v * rate;
-  const freight = b.fields.freight.v || 0;
-  const spares = S.inclSpares ? (b.fields.spares.v || 0) : 0;
-  const scope = b.fields.scope.v || 0;
+  const ov = S.overrides[b.id] || {};
+  const g = k => (ov[k] !== undefined ? ov[k] : (b.fields[k].v || 0));
+  const baseUSD = g('base') * rate;
+  const freight = g('freight');
+  const spares = S.inclSpares ? g('spares') : 0;
+  const scope = g('scope');
   const fxRisk = cur === 'EUR' ? Math.round(baseUSD * S.hedgePct / 100) : 0;
   const total = baseUSD + freight + spares + scope + fxRisk;
   const lowConf = Object.values(b.fields).filter(f => f.conf !== 'hi').length;
-  return { baseUSD, freight, spares, scope, fxRisk, total, lead: b.fields.lead.v, exc: b.exceptions.length, lowConf };
+  return { baseUSD, freight, spares, scope, fxRisk, total, lead: g('lead'), exc: b.exceptions.length, lowConf };
 }
 function levelAll(p) {
   const rows = p.bids.map(b => ({ b, L: levelBid(b), incl: !S.excluded[b.id] }));
@@ -599,7 +604,10 @@ function resolveRfi(id) {
 function renderLvl(p) {
   const lv = levelAll(p);
   const rows = lv.rows;
-  const money = (v, f, bid) => `<td>${v === 0 ? '–' : (v > 0 ? '+' : '') + fmtK(v).replace('$-', '-$')}${f && !f.vfy ? `<span class="cell-note" style="color:var(--amber);cursor:pointer;font-weight:700" onclick="openBid(&quot;${bid}&quot;)">unverified · verify →</span>` : ''}</td>`;
+  const money = (v, f, bid, key) => {
+    const o = S.overrides[bid] && S.overrides[bid][key] !== undefined;
+    return `<td${key === 'scope' && v > 0 && !o ? ' class="gap"' : ''}><input type="number" class="lvledit ${o ? 'ov' : ''}" value="${v}" onchange="setOv('${bid}','${key}',this.value)">${o ? `<span class="cell-note"><a style="color:var(--amber);cursor:pointer;font-weight:700" onclick="clearOv('${bid}','${key}')">edited · reset</a></span>` : f && f.note ? `<span class="cell-note">${esc(f.note)}</span>` : ''}${f && !f.vfy ? `<span class="cell-note" style="color:var(--amber);cursor:pointer;font-weight:700" onclick="openBid(&quot;${bid}&quot;)">unverified · verify →</span>` : ''}</td>`;
+  };
   const cell = (fn, cls) => rows.map(r => r.incl ? fn(r) : `<td class="excl">·</td>`).join('');
   const minT = lv.minT;
   return `
@@ -613,24 +621,26 @@ function renderLvl(p) {
     <span class="wrow">Cost <input type="range" min="0" max="100" step="5" value="${S.weights.c}" oninput="S.weights.c=+this.value;render()"><span class="wv">${S.weights.c}</span></span>
     <span class="wrow">Schedule <input type="range" min="0" max="100" step="5" value="${S.weights.s}" oninput="S.weights.s=+this.value;render()"><span class="wv">${S.weights.s}</span></span>
     <span class="wrow">Risk <input type="range" min="0" max="100" step="5" value="${S.weights.r}" oninput="S.weights.r=+this.value;render()"><span class="wv">${S.weights.r}</span></span>
+    ${ovCount() ? `<span class="chip" style="background:var(--amber-bg);color:var(--amber);font-weight:700">${ovCount()} cell${ovCount() > 1 ? 's' : ''} edited</span>` : ''}
+    <button class="btn-ghost" style="margin-left:auto" onclick="S.overrides={};render();toast('Leveling reset to extracted actuals','ok')">Reset to actuals</button>
   </div>
   <div class="card" style="padding:6px 10px;overflow-x:auto">
   <table class="lvl">
     <tr><th>PKG-L1-210 · ${rows.length} bids</th>${rows.map(r => `<th class="${!r.incl ? 'excl' : lv.rec && r.b.id === lv.rec.b.id ? 'rec' : ''}">${esc(r.b.vendor)}${lv.rec && r.b.id === lv.rec.b.id && r.incl ? ' ★' : ''}${(c => c ? '<span style="display:block;font-size:9px;color:var(--amber);font-weight:700;cursor:pointer" onclick="openBid(&quot;' + r.b.id + '&quot;)">' + c + ' unverified · verify</span>' : '')(Object.values(r.b.fields).filter(f => !f.vfy).length)}<br><label style="font-size:10px;font-weight:400;color:var(--muted);cursor:pointer"><input type="checkbox" ${r.incl ? 'checked' : ''} onchange="S.excluded['${r.b.id}']=!this.checked;render()"> include</label></th>`).join('')}</tr>
-    <tr><td>Quoted base <span class="cell-note">as received</span></td>${cell(r => `<td>${r.b.fields.base.label || fmtK(r.b.fields.base.v)}<span class="src-ico" onclick="openBid('${r.b.id}')">⧉ src</span></td>`)}</tr>
+    <tr><td>Quoted base <span class="cell-note">editable · quote currency</span></td>${cell(r => { const o = S.overrides[r.b.id] && S.overrides[r.b.id].base !== undefined; return `<td><input type="number" class="lvledit ${o ? 'ov' : ''}" value="${o ? S.overrides[r.b.id].base : r.b.fields.base.v}" onchange="setOv('${r.b.id}','base',this.value)"><span class="cell-note">${r.b.fields.base.cur || 'USD'} · <span class="src-ico" onclick="openBid('${r.b.id}')">⧉ src</span>${o ? ` · <a style="color:var(--amber);cursor:pointer;font-weight:700" onclick="clearOv('${r.b.id}','base')">reset</a>` : ''}</span></td>`; })}</tr>
     <tr><td>Incoterms</td>${cell(r => `<td>${esc(String(r.b.fields.incoterms.v))}</td>`)}</tr>
     ${rows.some(r => r.b.fields.base.cur === 'EUR') ? `<tr><td>FX to USD @ ${S.eurRate}</td>${cell(r => r.b.fields.base.cur === 'EUR' ? `<td>${fmtK(r.L.baseUSD)}</td>` : '<td>–</td>')}</tr>` : ''}
-    <tr><td>+ Freight to site</td>${cell(r => money(r.L.freight, r.b.fields.freight, r.b.id))}</tr>
-    <tr><td>+ Spares (2 yr)${S.inclSpares ? '' : ' <span class="cell-note">off</span>'}</td>${cell(r => money(r.L.spares, r.b.fields.spares, r.b.id))}</tr>
-    <tr><td>+ Scope gaps</td>${cell(r => r.L.scope ? `<td class="gap">+${fmtK(r.L.scope).slice(1)}<span class="cell-note">${esc(r.b.fields.scope.note || '')}</span></td>` : '<td>–</td>')}</tr>
+    <tr><td>+ Freight to site</td>${cell(r => money(r.L.freight, r.b.fields.freight, r.b.id, 'freight'))}</tr>
+    <tr><td>+ Spares (2 yr)${S.inclSpares ? '' : ' <span class="cell-note">off</span>'}</td>${cell(r => money(r.L.spares, r.b.fields.spares, r.b.id, 'spares'))}</tr>
+    <tr><td>+ Scope gaps</td>${cell(r => money(r.L.scope, r.b.fields.scope, r.b.id, 'scope'))}</tr>
     <tr><td>+ FX hedge (${S.hedgePct}%)</td>${cell(r => money(r.L.fxRisk))}</tr>
     <tr class="total"><td>Leveled total</td>${cell(r => `<td class="${r.L.total === minT ? 'best' : ''}">${fmtK(r.L.total)}</td>`)}</tr>
-    <tr><td>Lead time</td>${cell(r => `<td class="${r.L.lead === Math.min(...rows.filter(x => x.incl).map(x => x.L.lead)) ? 'best' : ''}">${r.L.lead} wk</td>`)}</tr>
+    <tr><td>Lead time</td>${cell(r => { const o = S.overrides[r.b.id] && S.overrides[r.b.id].lead !== undefined; return `<td class="${r.L.lead === Math.min(...rows.filter(x => x.incl).map(x => x.L.lead)) ? 'best' : ''}"><input type="number" class="lvledit ${o ? 'ov' : ''}" value="${r.L.lead}" onchange="setOv('${r.b.id}','lead',this.value)" style="width:58px"> wk${o ? `<span class="cell-note"><a style="color:var(--amber);cursor:pointer;font-weight:700" onclick="clearOv('${r.b.id}','lead')">edited · reset</a></span>` : ''}</td>`; })}</tr>
     <tr><td>Open exceptions</td>${cell(r => `<td>${r.L.exc ? `<span class="chip flag">${r.L.exc}</span>` : '<span class="chip ok">0</span>'}</td>`)}</tr>
     <tr><td>Weighted score</td>${cell(r => `<td style="${lv.rec && r.b.id === lv.rec.b.id ? 'color:var(--blue);font-weight:700' : ''}">${r.score ?? '–'}${r.score != null ? `<span class="cell-note" style="white-space:normal">= ${(S.weights.c / 100).toFixed(2)}×${r.cs} + ${(S.weights.s / 100).toFixed(2)}×${r.ss} + ${(S.weights.r / 100).toFixed(2)}×${r.rs}</span>` : ''}</td>`)}</tr>
   </table>
   </div>
-  <div class="footnote" style="margin-top:8px">Score = (cost × ${S.weights.c} + schedule × ${S.weights.s} + risk × ${S.weights.r}) ÷ 100, where: cost score = lowest leveled total ÷ this bid's leveled total × 100 · schedule score = fastest lead time ÷ this bid's lead time × 100 · risk score = 100 − 18 per open exception − 6 per low-confidence field. All inputs are on this page; change a weight or assumption and every score recomputes.</div>
+  <div class="footnote" style="margin-top:8px">Score = (cost × ${S.weights.c} + schedule × ${S.weights.s} + risk × ${S.weights.r}) ÷ 100, where: cost score = lowest leveled total ÷ this bid's leveled total × 100 · schedule score = fastest lead time ÷ this bid's lead time × 100 · risk score = 100 − 18 per open exception − 6 per low-confidence field. All inputs are on this page; change a weight or assumption and every score recomputes. Amounts are USD (base in quote currency). Cell edits are what-if overrides – highlighted amber, never written to the bid record – and Reset to actuals returns to the document-extracted values.</div>
   <div class="recbox">${recText(lv)}</div>
   <div style="margin-top:14px;text-align:right"><button class="btn-primary" onclick="go('pkg','crys','dec')">Draft decision record →</button></div>`;
 }
@@ -670,7 +680,7 @@ function renderDec(p) {
 }
 function dlJSON() {
   const p = crys(); const lv = levelAll(p);
-  const out = { package: p.tagNo, name: p.name, decision: lv.rec ? lv.rec.b.vendor : null, weights: S.weights, assumptions: { eurRate: S.eurRate, hedgePct: S.hedgePct, inclSpares: S.inclSpares }, leveling: lv.rows.map(r => ({ vendor: r.b.vendor, included: r.incl, leveledUSD: r.L.total, leadWeeks: r.L.lead, exceptions: r.b.exceptions, score: r.score })), audit: p.audit };
+  const out = { package: p.tagNo, name: p.name, decision: lv.rec ? lv.rec.b.vendor : null, weights: S.weights, scenarioOverrides: S.overrides, assumptions: { eurRate: S.eurRate, hedgePct: S.hedgePct, inclSpares: S.inclSpares }, leveling: lv.rows.map(r => ({ vendor: r.b.vendor, included: r.incl, leveledUSD: r.L.total, leadWeeks: r.L.lead, exceptions: r.b.exceptions, score: r.score })), audit: p.audit };
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
   a.download = p.tagNo + '-decision-record.json'; a.click();
@@ -891,6 +901,21 @@ function renderIntake() {
   <div class="footnote">Live QR-form bids land in this same queue in production – the demo fast-tracks them to the package. Adding a transport (WhatsApp, portal API, call recorder) is an adapter into this queue, not a new feature.</div>`;
 }
 
+function setOv(bid, key, val) {
+  const bd = crys().bids.find(x => x.id === bid);
+  const n = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+  if (isNaN(n)) { render(); return; }
+  const actual = bd.fields[key].v || 0;
+  S.overrides[bid] = S.overrides[bid] || {};
+  if (Math.round(n) === actual) delete S.overrides[bid][key]; else S.overrides[bid][key] = Math.round(n);
+  if (!Object.keys(S.overrides[bid]).length) delete S.overrides[bid];
+  render();
+}
+function clearOv(bid, key) {
+  if (S.overrides[bid]) { delete S.overrides[bid][key]; if (!Object.keys(S.overrides[bid]).length) delete S.overrides[bid]; }
+  render();
+}
+function ovCount() { return Object.values(S.overrides).reduce((n, o) => n + Object.keys(o).length, 0); }
 function verifyField(bidId, key) {
   const p = DATA.packages.find(pk => pk.bids.some(x => x.id === bidId));
   const bd = p.bids.find(x => x.id === bidId);
