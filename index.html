@@ -477,14 +477,14 @@ function renderDash() {
 function renderPkg() {
   const p = pkg();
   const openRfis = p.rfis.filter(r => r.status === 'open').length;
-  const tabs = [['bids', `Bid inbox <span class="badge">${p.bids.length}</span>`], ['rfis', `Clarifications <span class="badge">${p.rfis.length ? openRfis + ' open' : 0}</span>`], ['lvl', 'Leveling'], ['dec', 'Decision record']];
+  const tabs = [['bids', `Bid inbox <span class="badge">${p.bids.length}</span>`], ['rfis', `Clarifications <span class="badge">${p.rfis.length ? openRfis + ' open' : 0}</span>`], ['lvl', 'Leveling'], ['act', `Activity <span class="badge">${(p.logs || []).length + p.audit.length}</span>`], ['dec', 'Decision record']];
   return `
   <div class="crumb"><a onclick="go('dash')" style="cursor:pointer">Packages</a> / ${p.tagNo}</div>
   <div class="pagehead"><h1>${esc(p.name)}</h1>${ctxChip(p.ctx)}${siteChip(p.site)}${statusChip(p.status)}</div>
   <div class="subline">${p.tagNo} · ${esc(p.desc)} · Bids due ${p.due} · Owner ${p.owner}</div>
   <div class="tabs">${tabs.map(t => `<button class="tab ${S.tab === t[0] ? 'on' : ''}" onclick="go('pkg','${p.id}','${t[0]}')">${t[1]}</button>`).join('')}</div>
-  ${p.id !== 'crys' && !(S.tab === 'rfis' && p.rfis.length) ? `<div class="card"><div class="emptybox">Demo data is fully populated for the <a style="cursor:pointer" onclick="go('pkg','crys','bids')">evaporator–crystallizer package</a> – this package is context for the dashboard.<br><br>${esc(p.note)}</div></div>` :
-    S.tab === 'bids' ? renderBids(p) : S.tab === 'rfis' ? renderRfis(p) : S.tab === 'lvl' ? renderLvl(p) : renderDec(p)}`;
+  ${p.id !== 'crys' && !(S.tab === 'rfis' && p.rfis.length) && S.tab !== 'act' ? `<div class="card"><div class="emptybox">Demo data is fully populated for the <a style="cursor:pointer" onclick="go('pkg','crys','bids')">evaporator–crystallizer package</a> – this package is context for the dashboard.<br><br>${esc(p.note)}</div></div>` :
+    S.tab === 'bids' ? renderBids(p) : S.tab === 'rfis' ? renderRfis(p) : S.tab === 'lvl' ? renderLvl(p) : S.tab === 'act' ? renderAct(p) : renderDec(p)}`;
 }
 
 /* ---- bids tab ---- */
@@ -627,9 +627,10 @@ function renderLvl(p) {
     <tr class="total"><td>Leveled total</td>${cell(r => `<td class="${r.L.total === minT ? 'best' : ''}">${fmtK(r.L.total)}</td>`)}</tr>
     <tr><td>Lead time</td>${cell(r => `<td class="${r.L.lead === Math.min(...rows.filter(x => x.incl).map(x => x.L.lead)) ? 'best' : ''}">${r.L.lead} wk</td>`)}</tr>
     <tr><td>Open exceptions</td>${cell(r => `<td>${r.L.exc ? `<span class="chip flag">${r.L.exc}</span>` : '<span class="chip ok">0</span>'}</td>`)}</tr>
-    <tr><td>Weighted score</td>${cell(r => `<td style="${lv.rec && r.b.id === lv.rec.b.id ? 'color:var(--blue);font-weight:700' : ''}">${r.score ?? '–'}</td>`)}</tr>
+    <tr><td>Weighted score</td>${cell(r => `<td style="${lv.rec && r.b.id === lv.rec.b.id ? 'color:var(--blue);font-weight:700' : ''}">${r.score ?? '–'}${r.score != null ? `<span class="cell-note" style="white-space:normal">= ${(S.weights.c / 100).toFixed(2)}×${r.cs} + ${(S.weights.s / 100).toFixed(2)}×${r.ss} + ${(S.weights.r / 100).toFixed(2)}×${r.rs}</span>` : ''}</td>`)}</tr>
   </table>
   </div>
+  <div class="footnote" style="margin-top:8px">Score = (cost × ${S.weights.c} + schedule × ${S.weights.s} + risk × ${S.weights.r}) ÷ 100, where: cost score = lowest leveled total ÷ this bid's leveled total × 100 · schedule score = fastest lead time ÷ this bid's lead time × 100 · risk score = 100 − 18 per open exception − 6 per low-confidence field. All inputs are on this page; change a weight or assumption and every score recomputes.</div>
   <div class="recbox">${recText(lv)}</div>
   <div style="margin-top:14px;text-align:right"><button class="btn-primary" onclick="go('pkg','crys','dec')">Draft decision record →</button></div>`;
 }
@@ -890,6 +891,28 @@ function renderIntake() {
   <div class="footnote">Live QR-form bids land in this same queue in production – the demo fast-tracks them to the package. Adding a transport (WhatsApp, portal API, call recorder) is an adapter into this queue, not a new feature.</div>`;
 }
 
+function attachLog(target, it) {
+  (target.logs = target.logs || []).push({ ch: it.ch, from: it.from, raw: it.raw, evid: it.evid, attach: it.attach, t: it.t });
+}
+function renderAct(p) {
+  const logs = p.logs || [];
+  const chLabel = { text: 'TEXT / SMS', vm: 'VOICEMAIL', email: 'EMAIL', upload: 'UPLOAD' };
+  return `
+  <h2>Logged items</h2>
+  ${logs.length ? logs.map(l => `
+  <div class="icard">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span class="ch ${l.ch}">${chLabel[l.ch] || 'ITEM'}</span>
+      <span style="font-size:12.5px;font-weight:600;color:var(--navy)">${esc(l.from)}</span>
+      <span class="td-sub">${esc(l.t)}</span>
+      ${l.evid ? `<span class="evid ${l.evid}">${l.evid.toUpperCase()}</span>` : ''}
+      <span class="ch upload">LOGGED BY HAND</span>
+    </div>
+    <div style="margin-top:10px">${l.ch === 'text' ? `<div class="bubble">${esc(l.raw)}</div>` : `<div class="raw" style="max-height:150px">${esc(l.raw)}</div>`}${l.attach ? `<div class="footnote">Attachment: ${esc(l.attach)} – parsed in production</div>` : ''}</div>
+  </div>`).join('') : '<div class="card"><div class="emptybox">Nothing logged by hand for this package yet – use “+ Log item” in the top bar.</div></div>'}
+  <h2 style="margin-top:18px">Audit trail</h2>
+  <div class="panel"><div class="audit">${p.audit.length ? p.audit.map(a => `<div class="audit-row"><span class="audit-t">${a.t}</span><span class="audit-w">${esc(a.who)}</span><span>${esc(a.what)}</span></div>`).join('') : '<div class="emptybox">No events yet.</div>'}</div></div>`;
+}
 const LOG_LABEL = { text: 'text message', vm: 'call notes', email: 'forwarded email', upload: 'document' };
 let logSrc = 'text', logEvid = 'verbatim';
 function logItem() {
@@ -935,7 +958,8 @@ function submitLogItem() {
       it.why = 'package chosen by the person logging it – human match';
       it.status = 'accepted'; it.result = 'Logged → ' + target.tagNo;
       target.audit.push({ t: 'Jul 10, ' + now(), who: 'G. Apel', what: (logEvid === 'verbatim' ? 'Verbatim ' : 'Recalled ') + LOG_LABEL[logSrc] + ' logged manually from ' + from + (it.attach ? ' – attachment: ' + it.attach : '') });
-      toast('Logged to ' + target.name + ' – on the record, on the audit trail', 'ok');
+      attachLog(target, it);
+      toast('Logged to ' + target.name + ' – on its Activity tab and audit trail', 'ok');
     } else {
       const hit = DATA.packages.find(p => raw.toUpperCase().includes(p.tagNo));
       const vhit = crys().bids.find(bd => raw.toLowerCase().includes(bd.vendor.split(' ')[0].toLowerCase()));
@@ -944,6 +968,7 @@ function submitLogItem() {
         it.why = 'RFQ number ' + hit.tagNo + ' found in the content';
         it.status = 'accepted'; it.autoRouted = true; it.result = 'Auto-routed → ' + hit.tagNo;
         hit.audit.push({ t: 'Jul 10, ' + now(), who: 'Bid Room', what: 'Manually logged ' + LOG_LABEL[logSrc] + ' auto-routed here – 95%, RFQ number in content' });
+        attachLog(hit, it);
         toast('95% ≥ 90% threshold – auto-routed to ' + hit.name, 'ok');
       } else if (vhit) {
         it.cls = { pkg: 'crys', pkgName: crys().name, vendor: vhit.vendor, intent: 'Manual log', conf: 82, level: 'md' };
@@ -959,7 +984,7 @@ function submitLogItem() {
     }
     S.intake.unshift(it);
     closeModal();
-    go('intake');
+    if (pkgSel) { go('pkg', pkgSel, 'act'); } else { go('intake'); }
   };
   if (f && /\.(txt|md|csv)$/i.test(f.name) && !raw0) {
     const fr = new FileReader(); fr.onload = () => finish(String(fr.result)); fr.readAsText(f);
@@ -1016,6 +1041,7 @@ function acceptIntake(id) {
     const target = DATA.packages.find(x => x.id === (sel ? sel.value : it.cls.pkg));
     if (target) {
       target.audit.push({ t: 'Jul 10, ' + now(), who: 'G. Apel', what: 'Manually logged item routed here from intake – ' + (it.evid || '') + ' ' + (LOG_LABEL[it.ch] || 'item') + ' from ' + it.from });
+      attachLog(target, it);
       it.result = 'Routed → ' + target.tagNo;
       toast('Routed to ' + target.name, 'ok');
     }
