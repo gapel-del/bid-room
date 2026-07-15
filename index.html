@@ -525,7 +525,7 @@ function openBid(bidId) {
       <span class="conf ${f.conf}" title="extraction confidence"></span>
       <span class="fk">${FIELD_LABELS[k]}</span>
       <span class="fv">${esc(String(val))}${f.note && typeof f.v === 'number' && f.v ? `<span class="cell-note">${esc(f.note)}</span>` : ''}</span>
-      <span class="vfy ${f.vfy ? '' : 'no'}">${f.vfy ? '✓ verified' : 'unverified'}</span>
+      ${f.vfy ? '<span class="vfy">✓ verified</span>' : `<span class="vfy no">unverified</span><button class="btn-ghost" style="font-size:10px;padding:2px 8px" onclick="event.stopPropagation();verifyField('${b.id}','${k}')">Verify</button><button class="btn-ghost" style="font-size:10px;padding:2px 8px" onclick="event.stopPropagation();correctField('${b.id}','${k}')">Correct</button>`}
     </div>`;
   };
   const doc = esc(b.doc).replace(/\[(s\d+)\]([\s\S]*?)\[\/s\d+\]/g, (m, id, txt) => `<span class="src" id="src_${id}">${txt}</span>`);
@@ -599,7 +599,7 @@ function resolveRfi(id) {
 function renderLvl(p) {
   const lv = levelAll(p);
   const rows = lv.rows;
-  const money = (v, cls) => `<td class="${cls || ''}">${v === 0 ? '–' : (v > 0 ? '+' : '') + fmtK(v).replace('$-', '-$')}</td>`;
+  const money = (v, f, bid) => `<td>${v === 0 ? '–' : (v > 0 ? '+' : '') + fmtK(v).replace('$-', '-$')}${f && !f.vfy ? `<span class="cell-note" style="color:var(--amber);cursor:pointer;font-weight:700" onclick="openBid(&quot;${bid}&quot;)">unverified · verify →</span>` : ''}</td>`;
   const cell = (fn, cls) => rows.map(r => r.incl ? fn(r) : `<td class="excl">·</td>`).join('');
   const minT = lv.minT;
   return `
@@ -616,12 +616,12 @@ function renderLvl(p) {
   </div>
   <div class="card" style="padding:6px 10px;overflow-x:auto">
   <table class="lvl">
-    <tr><th>PKG-L1-210 · ${rows.length} bids</th>${rows.map(r => `<th class="${!r.incl ? 'excl' : lv.rec && r.b.id === lv.rec.b.id ? 'rec' : ''}">${esc(r.b.vendor)}${lv.rec && r.b.id === lv.rec.b.id && r.incl ? ' ★' : ''}${(c => c ? '<span style="display:block;font-size:9px;color:var(--amber);font-weight:700">' + c + ' unverified</span>' : '')(Object.values(r.b.fields).filter(f => !f.vfy).length)}<br><label style="font-size:10px;font-weight:400;color:var(--muted);cursor:pointer"><input type="checkbox" ${r.incl ? 'checked' : ''} onchange="S.excluded['${r.b.id}']=!this.checked;render()"> include</label></th>`).join('')}</tr>
+    <tr><th>PKG-L1-210 · ${rows.length} bids</th>${rows.map(r => `<th class="${!r.incl ? 'excl' : lv.rec && r.b.id === lv.rec.b.id ? 'rec' : ''}">${esc(r.b.vendor)}${lv.rec && r.b.id === lv.rec.b.id && r.incl ? ' ★' : ''}${(c => c ? '<span style="display:block;font-size:9px;color:var(--amber);font-weight:700;cursor:pointer" onclick="openBid(&quot;' + r.b.id + '&quot;)">' + c + ' unverified · verify</span>' : '')(Object.values(r.b.fields).filter(f => !f.vfy).length)}<br><label style="font-size:10px;font-weight:400;color:var(--muted);cursor:pointer"><input type="checkbox" ${r.incl ? 'checked' : ''} onchange="S.excluded['${r.b.id}']=!this.checked;render()"> include</label></th>`).join('')}</tr>
     <tr><td>Quoted base <span class="cell-note">as received</span></td>${cell(r => `<td>${r.b.fields.base.label || fmtK(r.b.fields.base.v)}<span class="src-ico" onclick="openBid('${r.b.id}')">⧉ src</span></td>`)}</tr>
     <tr><td>Incoterms</td>${cell(r => `<td>${esc(String(r.b.fields.incoterms.v))}</td>`)}</tr>
     ${rows.some(r => r.b.fields.base.cur === 'EUR') ? `<tr><td>FX to USD @ ${S.eurRate}</td>${cell(r => r.b.fields.base.cur === 'EUR' ? `<td>${fmtK(r.L.baseUSD)}</td>` : '<td>–</td>')}</tr>` : ''}
-    <tr><td>+ Freight to site</td>${cell(r => money(r.L.freight))}</tr>
-    <tr><td>+ Spares (2 yr)${S.inclSpares ? '' : ' <span class="cell-note">off</span>'}</td>${cell(r => money(r.L.spares))}</tr>
+    <tr><td>+ Freight to site</td>${cell(r => money(r.L.freight, r.b.fields.freight, r.b.id))}</tr>
+    <tr><td>+ Spares (2 yr)${S.inclSpares ? '' : ' <span class="cell-note">off</span>'}</td>${cell(r => money(r.L.spares, r.b.fields.spares, r.b.id))}</tr>
     <tr><td>+ Scope gaps</td>${cell(r => r.L.scope ? `<td class="gap">+${fmtK(r.L.scope).slice(1)}<span class="cell-note">${esc(r.b.fields.scope.note || '')}</span></td>` : '<td>–</td>')}</tr>
     <tr><td>+ FX hedge (${S.hedgePct}%)</td>${cell(r => money(r.L.fxRisk))}</tr>
     <tr class="total"><td>Leveled total</td>${cell(r => `<td class="${r.L.total === minT ? 'best' : ''}">${fmtK(r.L.total)}</td>`)}</tr>
@@ -891,6 +891,45 @@ function renderIntake() {
   <div class="footnote">Live QR-form bids land in this same queue in production – the demo fast-tracks them to the package. Adding a transport (WhatsApp, portal API, call recorder) is an adapter into this queue, not a new feature.</div>`;
 }
 
+function verifyField(bidId, key) {
+  const p = DATA.packages.find(pk => pk.bids.some(x => x.id === bidId));
+  const bd = p.bids.find(x => x.id === bidId);
+  const f = bd.fields[key];
+  f.vfy = true; f.conf = 'hi';
+  audit(p, FIELD_LABELS[key] + ' verified as extracted for ' + bd.vendor + ' – G. Apel');
+  toast(FIELD_LABELS[key] + ' verified – leveling flags updated', 'ok');
+  render(); openBid(bidId);
+}
+function correctField(bidId, key) {
+  const row = $('f_' + key);
+  const bd = DATA.packages.find(pk => pk.bids.some(x => x.id === bidId)).bids.find(x => x.id === bidId);
+  const f = bd.fields[key];
+  const numeric = ['base', 'freight', 'spares', 'scope', 'lead'].includes(key);
+  row.onclick = null;
+  row.innerHTML = `<span class="fk">${FIELD_LABELS[key]}</span>
+    <input type="${numeric ? 'number' : 'text'}" id="cf_val" value="${esc(String(f.v))}" style="flex:1;padding:4px 8px;font-size:12px">
+    <button class="btn-primary" style="font-size:10px;padding:3px 10px" onclick="event.stopPropagation();saveCorrection('${bidId}','${key}')">Save & verify</button>
+    <button class="btn-ghost" style="font-size:10px;padding:3px 8px" onclick="event.stopPropagation();openBid('${bidId}')">Cancel</button>`;
+}
+function saveCorrection(bidId, key) {
+  const p = DATA.packages.find(pk => pk.bids.some(x => x.id === bidId));
+  const bd = p.bids.find(x => x.id === bidId);
+  const f = bd.fields[key];
+  const numeric = ['base', 'freight', 'spares', 'scope', 'lead'].includes(key);
+  const raw = $('cf_val').value.trim();
+  const old = f.label || f.v;
+  if (numeric) {
+    const n = parseFloat(raw.replace(/[^0-9.]/g, ''));
+    if (isNaN(n)) { toast('Enter a number', 'info'); return; }
+    f.v = Math.round(n);
+    if (key === 'base') f.label = (f.cur === 'EUR' ? '€' : '$') + f.v.toLocaleString();
+  } else { f.v = raw; }
+  f.vfy = true; f.conf = 'hi';
+  f.note = (f.note ? f.note + ' · ' : '') + 'corrected at verification';
+  audit(p, FIELD_LABELS[key] + ' corrected for ' + bd.vendor + ': ' + old + ' → ' + (f.label || f.v) + ' (extraction correction, human-verified) – G. Apel');
+  toast(FIELD_LABELS[key] + ' corrected & verified – leveling updated', 'ok');
+  render(); openBid(bidId);
+}
 function attachLog(target, it) {
   (target.logs = target.logs || []).push({ ch: it.ch, from: it.from, raw: it.raw, evid: it.evid, attach: it.attach, t: it.t });
 }
