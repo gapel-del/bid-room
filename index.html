@@ -859,9 +859,9 @@ S.intake = [
   { id:'in3', ch:'vm', from:'Nordkessel GmbH · H. Brandt · 0:38', t:'Today 10:02',
     raw:'"...good news on the logistics side, ocean freight has come down since our offer, we can revise the freight budget from one eighteen down to ninety five thousand US dollars, I will confirm this by email..." (auto-transcribed)',
     cls:{pkg:'crys', pkgName:'Evaporator–crystallizer package', vendor:'Nordkessel GmbH', intent:'Bid revision', conf:78, level:'md'}, why:'caller ID matches Nordkessel contact · transcript references an active offer · auto-transcription lowers confidence', status:'pending' },
-  { id:'in4', ch:'email', from:'sales@ridgelinemech.com', t:'Today 11:27',
-    raw:'Subject: RE: RFQ\n\nApologies for the delay on our end. Quick question – should\nthe crusher liners be quoted separately from the mantle, or\nbundled? Also, is the due date firm?',
-    cls:{pkg:'crush', pkgName:'Primary crusher rebuild?', vendor:'Ridgeline Mechanical', intent:'Vendor question', conf:41, level:'lo'}, why:'no RFQ number found · sender not in the vendor registry · "crusher liners" weakly suggests PKG-C1-050', status:'pending' }
+  { id:'in4', ch:'email', from:'quotes@haldenmachinery.com', t:'Today 11:27',
+    raw:'Subject: Quotation – rebuild package\n\nFollowing the site visit, please find our budget quotation\nfor the rebuild package: USD 742,000 ex works, delivery\n18 weeks from order release. Liner set and mantle included.\nOffer valid 60 days.',
+    cls:{pkg:'crush', pkgName:'Primary crusher rebuild?', vendor:'Halden Machinery (first contact)', intent:'New bid – first contact', conf:41, level:'lo'}, why:'no RFQ number found · sender not in the vendor registry · "liner set and mantle" weakly suggests PKG-C1-050 · price magnitude fits the crusher budget', status:'pending' }
 ];
 
 function renderIntake() {
@@ -1048,7 +1048,7 @@ function submitLogItem() {
     }
     S.intake.unshift(it);
     closeModal();
-    if (pkgSel) { go('pkg', pkgSel, 'act'); } else { go('intake'); }
+    if (it.status === 'accepted') { go('dash'); } else { go('intake'); }
   };
   if (f && /\.(txt|md|csv)$/i.test(f.name) && !raw0) {
     const fr = new FileReader(); fr.onload = () => finish(String(fr.result)); fr.readAsText(f);
@@ -1094,11 +1094,11 @@ function acceptIntake(id) {
   if (id === 'in4') {
     const sel = $('route_' + id);
     const target = DATA.packages.find(x => x.id === (sel ? sel.value : it.cls.pkg));
-    target.audit.push({ t: 'Jul 10, ' + now(), who: 'G. Apel', what: 'Vendor question from Ridgeline Mechanical routed here from intake; clarification thread opened' });
-    target.rfis.push({ id: target.tagNo.slice(-3) + '-Q' + (target.rfis.length + 1), vendor: 'Ridgeline Mechanical', q: 'Quote crusher liners separately from the mantle? Is the due date firm?', status: 'open', auto: false, thread: [{ who: 'Ridgeline Mechanical (routed from intake)', us: false, t: 'Jul 10, ' + now(), txt: it.raw }] });
-    if (target.id === 'crush') target.note = '3 of 4 bids in · 3 open RFIs';
-    it.result = 'Question → ' + target.tagNo;
-    toast('Routed to ' + target.name + ' as a vendor question', 'ok');
+    target.audit.push({ t: 'Jul 10, ' + now(), who: 'G. Apel', what: 'First-contact quotation from Halden Machinery routed here from intake – USD 742,000 / 18 wk ex works; queued for extraction into the bid inbox' });
+    attachLog(target, it);
+    if (target.id === 'crush') target.note = '4 of 4 bids in · 2 open RFIs';
+    it.result = 'New bid → ' + target.tagNo;
+    toast('Routed to ' + target.name + ' as a new bid – queued for extraction', 'bid');
   }
   if (it.manual) {
     const sel = $('route_' + id);
