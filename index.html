@@ -213,7 +213,8 @@ table.lvl td.excl,table.lvl th.excl{opacity:.32}
     <span class="brand-sub">CapitalProjectOS</span>
   </div>
   <div class="hdr-right">
-    <button class="hdr-btn" onclick="go('intake')">Intake <span id="intakeBadge" style="background:var(--blue);color:#fff;border-radius:999px;font-size:10px;padding:1px 7px;font-weight:700">4</span></button>
+    <button class="hdr-btn" onclick="logItem()">+ Log item</button>
+    <button class="hdr-btn" onclick="go('intake')">Intake review <span id="intakeBadge" style="background:var(--blue);color:#fff;border-radius:999px;font-size:10px;padding:1px 7px;font-weight:700">4</span></button>
     <button class="hdr-btn" onclick="toggleLive()"><span class="live-dot" id="liveDot"></span> Live intake</button>
     <button class="btn-primary" onclick="toast('New RFQ creation is post-MVP – see roadmap','info')">+ New RFQ</button>
   </div>
@@ -857,7 +858,7 @@ function renderIntake() {
   const chLabel = { email:'EMAIL', text:'TEXT / SMS', vm:'VOICEMAIL', upload:'UPLOAD' };
   return `
   <div class="crumb"><a onclick="go('dash')" style="cursor:pointer">Packages</a> / Intake</div>
-  <div class="pagehead"><h1>Intake</h1><span class="chip ${pending ? 'status-clarify' : 'ok'}">${pending} awaiting routing</span><span class="chip site">auto-route at ≥ 90%</span><button class="btn-primary" style="margin-left:auto" onclick="logItem()">+ Log item</button><button class="btn-ghost" onclick="simulateSms()">Simulate: SMS arrives</button></div>
+  <div class="pagehead"><h1>Intake</h1><span class="chip ${pending ? 'status-clarify' : 'ok'}">${pending} awaiting routing</span><span class="chip site">auto-route at ≥ 90%</span><button class="btn-ghost" style="margin-left:auto" onclick="simulateSms()">Simulate: SMS arrives</button></div>
   <div class="subline">Every item is classified (package · vendor · intent) with a confidence score. At or above 90% it auto-routes straight through – this queue holds only what the system is not sure about, plus a visible log of what it routed on its own. Anything no system can see – a text to your personal phone, notes from a call – gets logged by hand with “+ Log item” and flows through the same pipeline.</div>
   ${S.intake.map(it => `
   <div class="icard ${it.status !== 'pending' ? 'done' : ''}">
