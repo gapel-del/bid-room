@@ -155,10 +155,26 @@ table.lvl td.excl,table.lvl th.excl{opacity:.32}
 .wrow .wv{font-weight:700;color:var(--navy);width:24px}
 .wrow .wsh{color:var(--muted);font-weight:600;font-size:11px;width:38px}
 
+/* feedback fab */
+.fb-fab{position:fixed;right:18px;bottom:18px;z-index:90;display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+.fb-btn{background:var(--navy2);color:#fff;font-weight:600;font-size:12.5px;border-radius:999px;padding:10px 16px;box-shadow:0 4px 14px rgba(0,4,39,.25);display:flex;align-items:center;gap:7px}
+.fb-btn:hover{background:var(--navy)}
+.fb-panel{width:302px;background:#fff;border:1px solid var(--line-dk);border-radius:10px;box-shadow:0 10px 30px rgba(0,4,39,.18);padding:14px;display:none}
+.fb-panel.open{display:block}
+.fb-panel h4{font-size:13px;color:var(--navy);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.fb-panel h4 button{color:var(--muted);font-size:16px;line-height:1;padding:0 2px}
+.fb-type{display:flex;gap:6px;margin-bottom:8px}
+.fb-type .chip{cursor:pointer;background:#f0f0f0;color:var(--muted)}
+.fb-type .chip.on{background:var(--blue-bg);color:var(--blue)}
+.fb-panel textarea{width:100%;resize:vertical;min-height:64px;margin-bottom:6px}
+.fb-ctx{font-size:11px;color:var(--muted);margin-bottom:10px}
+.fb-send{width:100%;background:var(--blue);color:#fff;font-weight:600;border-radius:6px;padding:8px}
+.fb-send:hover{background:var(--blue-hover)}
+
 .recbox{background:var(--blue-bg);border-left:3px solid var(--blue);padding:13px 16px;font-size:13px;color:var(--navy2);border-radius:0 8px 8px 0;margin-top:14px}
 .recbox b{color:var(--blue)}
 
-.toast-wrap{position:fixed;bottom:20px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast-wrap{position:fixed;bottom:84px;right:20px;z-index:200;display:flex;flex-direction:column;gap:8px}
 .toast{background:var(--navy);color:#fff;border-radius:8px;padding:11px 16px;font-size:12.5px;box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;gap:10px;align-items:center;animation:slidein .25s ease}
 .toast .tico{color:var(--teal)}
 @keyframes slidein{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
@@ -227,6 +243,19 @@ table.lvl td.excl,table.lvl th.excl{opacity:.32}
 <div class="toast-wrap" id="toasts"></div>
 <div id="livePanel" class="live-panel" style="display:none"></div>
 <div id="modalRoot"></div>
+<div class="fb-fab" id="fbRoot">
+  <div class="fb-panel" id="fbPanel" role="dialog" aria-label="Send feedback">
+    <h4>Send feedback <button onclick="fbClose()" aria-label="Close">×</button></h4>
+    <div class="fb-type" id="fbType">
+      <span class="chip on" data-t="bug" onclick="fbSetType('bug')">Bug</span>
+      <span class="chip" data-t="feature" onclick="fbSetType('feature')">Feature request</span>
+    </div>
+    <textarea id="fbText" placeholder="What happened, or what would help?"></textarea>
+    <div class="fb-ctx" id="fbCtx"></div>
+    <button class="fb-send" onclick="fbSubmit()">Submit</button>
+  </div>
+  <button class="fb-btn" id="fbBtn" aria-expanded="false" onclick="fbToggle()">⚑ Feedback</button>
+</div>
 <script>
 /* ============ CONFIG ============ */
 /* Paste your Firebase Realtime Database URL here to enable live audience bids.
@@ -361,7 +390,8 @@ const S = {
   eurRate:1.09, hedgePct:2, inclSpares:true,
   weights:{c:45, s:35, r:20},
   excluded:{}, openRfi:null, overrides:{},
-  liveBids:[], seenKeys:{}, polling:false, livePanelOpen:false
+  liveBids:[], seenKeys:{}, polling:false, livePanelOpen:false,
+  feedback:[]
 };
 
 /* ============ HELPERS ============ */
@@ -813,10 +843,42 @@ async function poll() {
 }
 if (LIVE_DB_URL) { poll().then(() => { S.bootDone = true; }); setInterval(poll, 2500); } else { S.bootDone = true; }
 
+/* ============ FEEDBACK WIDGET ============ */
+let fbKind = 'bug';
+const FB_TAB = { bids:'Bid inbox', rfis:'Clarifications', lvl:'Leveling', act:'Activity', dec:'Decision record' };
+function fbCtx() {
+  if (S.view === 'pkg' && pkg()) return (FB_TAB[S.tab] || 'Package') + ' \u00b7 ' + pkg().tagNo;
+  return S.view === 'intake' ? 'Intake review' : 'Dashboard';
+}
+function fbToggle() {
+  const p = $('fbPanel'), open = !p.classList.contains('open');
+  p.classList.toggle('open', open);
+  $('fbBtn').setAttribute('aria-expanded', String(open));
+  if (open) { $('fbCtx').textContent = 'Context attached automatically: ' + fbCtx(); $('fbText').focus(); }
+}
+function fbClose() {
+  $('fbPanel').classList.remove('open');
+  $('fbBtn').setAttribute('aria-expanded', 'false');
+}
+function fbSetType(t) {
+  fbKind = t;
+  document.querySelectorAll('#fbType .chip').forEach(c => c.classList.toggle('on', c.dataset.t === t));
+}
+function fbSubmit() {
+  const txt = $('fbText').value.trim();
+  if (!txt) { $('fbText').focus(); return; }
+  const item = { id: 'fb' + Date.now(), type: fbKind, text: txt, ctx: fbCtx(), t: 'Jul 10, ' + now(), by: 'G. Apel' };
+  S.feedback.push(item);
+  if (LIVE_DB_URL) fetch(LIVE_DB_URL.replace(/\/$/, '') + '/feedback.json', { method: 'POST', body: JSON.stringify(item) }).catch(() => {});
+  $('fbText').value = '';
+  fbClose();
+  toast((item.type === 'bug' ? 'Bug report' : 'Feature request') + ' logged with context (' + item.ctx + ') \u2013 routed to the product backlog', 'ok');
+}
+
 document.addEventListener('keydown', e => {
   if (e.key === 'b' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) simulateBid();
   if (e.key === 'm' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) simulateSms();
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape') { closeModal(); fbClose(); }
 });
 
 
