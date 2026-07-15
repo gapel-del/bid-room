@@ -1048,7 +1048,7 @@ function submitLogItem() {
     }
     S.intake.unshift(it);
     closeModal();
-    if (it.status === 'accepted') { go('dash'); } else { go('intake'); }
+    go('dash');
   };
   if (f && /\.(txt|md|csv)$/i.test(f.name) && !raw0) {
     const fr = new FileReader(); fr.onload = () => finish(String(fr.result)); fr.readAsText(f);
